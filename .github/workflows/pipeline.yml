@@ -1,0 +1,26 @@
+name: App Clinica Pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  pipeline:
+    uses: wellingtonns/templates-pipeline/.github/workflows/app-pipeline.yml@main
+    with:
+      app_name: app-clinica
+      stack_type: frontend
+      context: .
+      image_name: ghcr.io/wellingtonns/app-clinica
+      kustomize_repository: wellingtonns/kustomize-share
+      kustomize_path: app/app-clinica
+      image_alias: app-image
+      deploy: false
+      deploy_ref: main
+    secrets: inherit

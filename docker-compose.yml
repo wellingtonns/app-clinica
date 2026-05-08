@@ -1,0 +1,7 @@
+services:
+  app-clinica:
+    build: .
+    container_name: app-clinica
+    ports:
+      - "8086:80"
+    restart: unless-stopped
