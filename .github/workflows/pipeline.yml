@@ -21,6 +21,7 @@ jobs:
       kustomize_repository: wellingtonns/kustomize-share
       kustomize_path: app/app-clinica
       image_alias: app-image
+      update_kustomize: false
       deploy: false
       deploy_ref: main
     secrets: inherit
