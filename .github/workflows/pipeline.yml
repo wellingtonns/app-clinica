@@ -48,7 +48,7 @@ jobs:
       kustomize_repository: wellingtonns/workloads
       kustomize_checkout_path: workloads
       kustomize_path: app/app-clinica
-      image_alias: app-image
+      image_alias: app
       update_kustomize: ${{ github.event_name == 'workflow_dispatch' && inputs.update_kustomize || false }}
       deploy: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy || false }}
       deploy_ref: main
