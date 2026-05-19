@@ -7,7 +7,7 @@ on:
         description: Atualizar newTag no repositorio workloads.
         required: false
         type: boolean
-        default: false
+        default: true
       deploy:
         description: Aplicar deploy no Kubernetes.
         required: false
