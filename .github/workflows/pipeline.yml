@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       update_kustomize:
-        description: Atualizar newTag no repositorio kustomize-share.
+        description: Atualizar newTag no repositorio workloads.
         required: false
         type: boolean
-        default: false
+        default: true
       deploy:
         description: Aplicar deploy no Kubernetes.
         required: false
@@ -31,6 +31,7 @@ jobs:
     with:
       scan_path: .
       fail_on_leak: true
+      scan_history: false
       gitleaks_config_path: .gitleaks.toml
       run_gitleaks: true
       run_trufflehog: true
@@ -44,10 +45,11 @@ jobs:
       stack_type: frontend
       context: .
       image_name: ghcr.io/wellingtonns/app-clinica
-      kustomize_repository: wellingtonns/kustomize-share
+      kustomize_repository: wellingtonns/workloads
+      kustomize_checkout_path: workloads
       kustomize_path: app/app-clinica
-      image_alias: app-image
-      update_kustomize: ${{ github.event_name == 'workflow_dispatch' && inputs.update_kustomize || false }}
+      image_alias: app
+      update_kustomize: ${{ github.event_name != 'workflow_dispatch' || inputs.update_kustomize }}
       deploy: ${{ github.event_name == 'workflow_dispatch' && inputs.deploy || false }}
       deploy_ref: main
     secrets: inherit
