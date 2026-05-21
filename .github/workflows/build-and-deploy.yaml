@@ -1,0 +1,31 @@
+name: Build-and-Deploy-Back
+run-name: ${{ (github.ref_name == 'dev' || github.ref_name == 'main')
+  && format('Build-and-Deploy-{0} @{1}', github.ref_name == 'main' && 'production' || 'development', github.actor)
+  || format('Build @{0}', github.actor) }}
+on:
+  push:
+    branches:
+    - '**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref_name == 'main' && 'prd' || 'dev' }}-${{ github.event.repository.name }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+  id-token: write
+  issues: write
+  repository-projects: write
+
+jobs:
+  pipeline:
+    uses: wellingtonns/remote-pipeline/.github/workflows/platform-workflow.yaml@devops
+    with:
+      STACK_TYPE: "back"
+      CONTEXT_DIR: ./
+      KUBERNETES_MANAGER: "kustomize"
+      KUBERNETES_MANIFESTS_PATH: apps/${{ github.event.repository.name }}
+    secrets: inherit
