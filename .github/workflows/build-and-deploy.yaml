@@ -11,10 +11,13 @@ on:
 concurrency:
   group: ${{ github.ref_name == 'main' && 'prd' || 'dev' }}-${{ github.event.repository.name }}
   cancel-in-progress: true
+  
+permissions:
+  contents: read
+  packages: write
+  pull-requests: read
 
 jobs:
-
-
   pipeline:
     uses: wellingtonns/remote-pipeline/.github/workflows/platform-workflow.yaml@devops
     with:
