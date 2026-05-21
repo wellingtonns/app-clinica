@@ -11,11 +11,11 @@ on:
 concurrency:
   group: ${{ github.ref_name == 'main' && 'prd' || 'dev' }}-${{ github.event.repository.name }}
   cancel-in-progress: true
-  
+
 permissions:
-  contents: read
+  contents: write
   packages: write
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   pipeline:
