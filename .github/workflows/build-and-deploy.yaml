@@ -1,4 +1,4 @@
-name: Build-and-Deploy-Back
+name: Build-and-Deploy
 run-name: ${{ (github.ref_name == 'dev' || github.ref_name == 'main')
   && format('Build-and-Deploy-{0} @{1}', github.ref_name == 'main' && 'production' || 'development', github.actor)
   || format('Build @{0}', github.actor) }}
