@@ -1,9 +1,10 @@
-import { BarChart3, CalendarDays, Package, Stethoscope, Users, Wallet } from "lucide-react";
+import { BarChart3, CalendarDays, LogOut, Package, Stethoscope, Users, Wallet } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { ReactNode } from "react";
 
 type Props = {
   children: ReactNode;
+  onLogout: () => void;
 };
 
 function navClassName({ isActive }: { isActive: boolean }) {
@@ -19,7 +20,7 @@ const navItems = [
   { to: "/profissionais", label: "Profissionais", icon: Stethoscope }
 ];
 
-export function Layout({ children }: Props) {
+export function Layout({ children, onLogout }: Props) {
   return (
     <main className="app-shell">
       <aside className="sidebar">
@@ -42,6 +43,13 @@ export function Layout({ children }: Props) {
             );
           })}
         </nav>
+
+        <button className="nav-link nav-logout-button" type="button" onClick={onLogout}>
+          <span className="nav-icon">
+            <LogOut aria-hidden="true" size={20} strokeWidth={2} />
+          </span>
+          Sair
+        </button>
       </aside>
 
       <div className="content">{children}</div>
