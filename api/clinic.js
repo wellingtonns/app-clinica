@@ -1,4 +1,5 @@
 import { prisma } from "./_prisma.js";
+import { getSessionToken, verifySessionToken } from "./auth/_utils.js";
 
 function json(res, status, payload, cacheControl = "no-store, max-age=0") {
   res.statusCode = status;
@@ -353,6 +354,11 @@ async function replaceClinicState(state) {
 
 export default async function handler(req, res) {
   try {
+    const session = verifySessionToken(getSessionToken(req));
+    if (!session?.sub) {
+      return json(res, 401, { error: "Sessão não encontrada." });
+    }
+
     if (req.method === "GET") {
       return json(res, 200, await getClinicState(), "private, max-age=15, stale-while-revalidate=60");
     }

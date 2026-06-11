@@ -211,6 +211,14 @@ th {
   transform: scale(1.04);
 }
 
+.nav-logout-button {
+  width: 100%;
+  margin-top: 1rem;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+
 .panel-header p,
 .summary,
 .list-card span,
@@ -1362,6 +1370,287 @@ th {
   margin: 1rem 0;
 }
 
+.auth-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(1.25rem, 4vw, 4rem);
+  background:
+    radial-gradient(circle at 88% 10%, rgba(236, 72, 153, 0.12), transparent 24%),
+    radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.92), transparent 28%),
+    linear-gradient(135deg, #fff7fb 0%, #fff 42%, #fde8f2 100%);
+}
+
+.auth-card {
+  width: min(1180px, 100%);
+  min-height: 720px;
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  overflow: hidden;
+  border-radius: 30px;
+  border: 1px solid rgba(214, 160, 178, 0.35);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 34px 84px rgba(127, 47, 85, 0.18);
+}
+
+.auth-brand-panel {
+  display: grid;
+  align-content: center;
+  gap: 2rem;
+  padding: clamp(2rem, 5vw, 4.5rem);
+  background:
+    linear-gradient(180deg, rgba(255, 241, 247, 0.94), rgba(250, 209, 225, 0.66)),
+    #fff5f9;
+}
+
+.auth-logo {
+  width: min(390px, 100%);
+  height: auto;
+  object-fit: contain;
+}
+
+.auth-brand-copy {
+  display: grid;
+  gap: 1rem;
+}
+
+.auth-brand-copy h1 {
+  max-width: 12ch;
+  color: #101827;
+  font-size: clamp(2rem, 3.3vw, 3rem);
+  line-height: 1.12;
+}
+
+.auth-brand-copy p {
+  max-width: 34ch;
+  color: #667085;
+  font-size: 1.12rem;
+  line-height: 1.55;
+}
+
+.auth-illustration {
+  display: grid;
+  place-items: center;
+  min-height: 230px;
+}
+
+.mini-window {
+  width: min(360px, 100%);
+  aspect-ratio: 1.55;
+  display: grid;
+  grid-template-columns: 82px 1fr;
+  overflow: hidden;
+  transform: rotate(-1.5deg);
+  border: 8px solid rgba(255, 255, 255, 0.8);
+  border-radius: 22px;
+  background: #fff;
+  box-shadow: 0 22px 46px rgba(216, 75, 133, 0.22);
+}
+
+.mini-sidebar {
+  display: grid;
+  align-content: start;
+  gap: 0.65rem;
+  padding: 1.2rem 0.75rem;
+  background: #fff0f6;
+}
+
+.mini-sidebar span,
+.mini-topline,
+.mini-metrics span,
+.mini-chart i {
+  display: block;
+  border-radius: 999px;
+  background: rgba(216, 75, 133, 0.25);
+}
+
+.mini-sidebar span {
+  height: 10px;
+}
+
+.mini-content {
+  display: grid;
+  gap: 1rem;
+  padding: 1.2rem;
+}
+
+.mini-topline {
+  width: 58%;
+  height: 14px;
+  background: rgba(16, 24, 39, 0.12);
+}
+
+.mini-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+}
+
+.mini-metrics span {
+  height: 46px;
+  border-radius: 12px;
+  background: rgba(216, 75, 133, 0.12);
+}
+
+.mini-chart {
+  height: 74px;
+  display: flex;
+  align-items: end;
+  gap: 0.55rem;
+  padding: 0.6rem;
+  border-radius: 14px;
+  background: rgba(248, 250, 252, 0.9);
+}
+
+.mini-chart i {
+  width: 100%;
+  background: linear-gradient(180deg, #ec2f7c, #f8a4c6);
+}
+
+.mini-chart i:nth-child(1) {
+  height: 30%;
+}
+
+.mini-chart i:nth-child(2) {
+  height: 48%;
+}
+
+.mini-chart i:nth-child(3) {
+  height: 42%;
+}
+
+.mini-chart i:nth-child(4) {
+  height: 68%;
+}
+
+.mini-chart i:nth-child(5) {
+  height: 86%;
+}
+
+.auth-form-panel {
+  display: grid;
+  align-content: center;
+  gap: 1.75rem;
+  padding: clamp(2rem, 5vw, 4.25rem);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.auth-form-header {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.auth-form-header h2 {
+  color: #101827;
+  font-size: clamp(2rem, 3vw, 2.75rem);
+  line-height: 1.12;
+}
+
+.auth-form-header p,
+.auth-switch,
+.auth-footer {
+  color: #667085;
+}
+
+.auth-form {
+  display: grid;
+  gap: 1.35rem;
+}
+
+.auth-form label > span {
+  display: block;
+  margin-bottom: 0.55rem;
+  color: #101827;
+  font-weight: 800;
+}
+
+.auth-input-shell {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 60px;
+  padding: 0 1rem;
+  border: 1px solid rgba(102, 112, 133, 0.28);
+  border-radius: 10px;
+  background: #fff;
+  color: #667085;
+}
+
+.auth-input-shell:focus-within {
+  border-color: rgba(236, 47, 124, 0.62);
+  box-shadow: 0 0 0 4px rgba(236, 47, 124, 0.12);
+}
+
+.auth-input-shell input {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.auth-input-shell input:focus {
+  box-shadow: none;
+}
+
+.auth-submit {
+  min-height: 58px;
+  border: 0;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #df176d, #ff3c8c);
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 14px 28px rgba(223, 23, 109, 0.18);
+}
+
+.auth-submit:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+.auth-feedback {
+  padding: 0.85rem 1rem;
+  border-radius: 10px;
+  font-weight: 700;
+}
+
+.auth-feedback-error {
+  color: #9f1239;
+  background: rgba(255, 228, 230, 0.9);
+}
+
+.auth-feedback-success {
+  color: #166534;
+  background: rgba(220, 252, 231, 0.9);
+}
+
+.auth-switch {
+  text-align: center;
+}
+
+.auth-switch a {
+  color: #df176d;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.auth-footer {
+  margin-top: 1.4rem;
+  text-align: center;
+}
+
+.auth-loading {
+  padding: 1rem 1.25rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: var(--shadow);
+  color: var(--muted);
+  font-weight: 800;
+}
+
 @media (min-width: 1800px) {
   :root {
     --content-max: 1760px;
@@ -1382,6 +1671,7 @@ th {
 @media (max-width: 1200px) {
   .hero,
   .beauty-hero,
+  .auth-card,
   .dashboard-main-grid,
   .page-grid,
   .chart-grid,
@@ -1391,6 +1681,10 @@ th {
   .patient-quick-info,
   .checkbox-grid {
     grid-template-columns: 1fr;
+  }
+
+  .auth-card {
+    min-height: auto;
   }
 
   .app-shell {
@@ -1461,9 +1755,23 @@ th {
 
   .hero,
   .beauty-hero,
+  .auth-card,
   .panel,
   .metric-card {
     border-radius: 24px;
+  }
+
+  .auth-page {
+    padding: 1rem;
+  }
+
+  .auth-brand-panel,
+  .auth-form-panel {
+    padding: 1.5rem;
+  }
+
+  .auth-brand-copy h1 {
+    max-width: 100%;
   }
 
   .dashboard-topbar,
