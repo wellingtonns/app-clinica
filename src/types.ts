@@ -1,5 +1,5 @@
 export type RoleName = "Administrador" | "Recepcao" | "Profissional";
-export type AppointmentStatus = "Agendado" | "Realizado" | "Cancelado";
+export type AppointmentStatus = "Agendado" | "Confirmado" | "Desmarcado" | "Realizado" | "Cancelado";
 export type FinancialStatus = "Pago" | "Pendente";
 export type PatientStatus = "Ativo" | "Inativo";
 export type PhotoCategory = "Antes" | "Depois" | "Durante" | "Evolucao";
@@ -144,10 +144,28 @@ export interface Appointment {
   procedure: string;
   date: string;
   time: string;
+  originalDate?: string;
+  originalTime?: string;
+  rescheduleReason?: string;
+  isRescheduled?: boolean;
   durationMinutes: number;
   status: AppointmentStatus;
   notes: string;
   price: number;
+  history?: AppointmentHistoryEntry[];
+}
+
+export interface AppointmentHistoryEntry {
+  id: string;
+  changedBy: string;
+  changedAt: string;
+  previousStatus: AppointmentStatus;
+  nextStatus: AppointmentStatus;
+  previousDate: string;
+  previousTime: string;
+  nextDate: string;
+  nextTime: string;
+  reason?: string;
 }
 
 export interface FinancialEntry {

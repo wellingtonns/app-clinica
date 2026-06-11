@@ -10,43 +10,57 @@ function navClassName({ isActive }: { isActive: boolean }) {
 }
 
 export function Layout({ children }: Props) {
+  const secondaryItems = ["Procedimentos", "Relatorios", "Marketing", "Configuracoes"];
+
   return (
     <main className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">CF</div>
+          <div className="brand-mark">BE</div>
           <div>
-            <p className="eyebrow">ClinicFlow Pro</p>
-            <h1>Plataforma de gestao clinica</h1>
+            <p className="eyebrow">Belleza Estetica</p>
+            <h1>Gestao para clinicas premium</h1>
           </div>
         </div>
 
         <nav className="nav-card">
-          <span>Modulos</span>
+          <span>Menu principal</span>
           <NavLink to="/" end className={navClassName}>
+            <span className="nav-icon">D</span>
             Dashboard
           </NavLink>
-          <NavLink to="/pacientes" className={navClassName}>
-            Pacientes
-          </NavLink>
           <NavLink to="/agenda" className={navClassName}>
-            Agenda
+            <span className="nav-icon">A</span>
+            Agendamentos
+          </NavLink>
+          <NavLink to="/pacientes" className={navClassName}>
+            <span className="nav-icon">C</span>
+            Clientes
           </NavLink>
           <NavLink to="/financeiro" className={navClassName}>
+            <span className="nav-icon">F</span>
             Financeiro
           </NavLink>
           <NavLink to="/produtos" className={navClassName}>
+            <span className="nav-icon">P</span>
             Produtos
           </NavLink>
           <NavLink to="/profissionais" className={navClassName}>
-            Profissionais
+            <span className="nav-icon">E</span>
+            Equipe
           </NavLink>
+          {secondaryItems.map((item) => (
+            <span className="nav-link nav-link-disabled" key={item}>
+              <span className="nav-icon">{item.slice(0, 1)}</span>
+              {item}
+            </span>
+          ))}
         </nav>
 
         <div className="highlight-card">
-          <span>Direcao do produto</span>
-          <strong>O paciente agora concentra historico, contrato, procedimentos, fotos e arquivos em uma unica central.</strong>
-          <p>A base visual foi mantida e o fluxo principal ficou organizado por paciente para consulta futura.</p>
+          <span>Experiencia Belleza</span>
+          <strong>Organizacao, cuidado e encantamento em cada atendimento.</strong>
+          <p>Painel preparado para acompanhar agenda, clientes, financeiro e relacionamento.</p>
         </div>
       </aside>
 

@@ -3,6 +3,7 @@ import { initialClinicData } from "../data/mockData";
 import {
   AnamnesisRecord,
   Appointment,
+  AppointmentStatus,
   ContractRecord,
   FinancialEntry,
   FinancialStatus,
@@ -65,6 +66,42 @@ function normalizeProcedure(raw: ProcedureRecord): ProcedureRecord {
   };
 }
 
+function normalizeAppointmentStatus(rawStatus: unknown): AppointmentStatus {
+  if (
+    rawStatus === "Confirmado" ||
+    rawStatus === "Desmarcado" ||
+    rawStatus === "Realizado" ||
+    rawStatus === "Cancelado"
+  ) {
+    return rawStatus;
+  }
+
+  return "Agendado";
+}
+
+function normalizeAppointment(raw: Partial<Appointment>): Appointment {
+  const legacyStatus = raw.status as string | undefined;
+  const isLegacyRescheduled = legacyStatus === "Remarcado";
+
+  return {
+    id: raw.id ?? createId("APT"),
+    patientId: raw.patientId ?? "",
+    professionalId: raw.professionalId ?? "",
+    procedure: raw.procedure ?? "",
+    date: raw.date ?? "",
+    time: raw.time ?? "",
+    originalDate: raw.originalDate,
+    originalTime: raw.originalTime,
+    rescheduleReason: raw.rescheduleReason,
+    isRescheduled: raw.isRescheduled ?? isLegacyRescheduled,
+    durationMinutes: raw.durationMinutes ?? 60,
+    status: normalizeAppointmentStatus(raw.status),
+    notes: raw.notes ?? "",
+    price: raw.price ?? 0,
+    history: Array.isArray(raw.history) ? raw.history : []
+  };
+}
+
 function parseStoredState(): PersistedClinicData {
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -83,7 +120,9 @@ function parseStoredState(): PersistedClinicData {
         ? parsed.procedures.map((procedure) => normalizeProcedure(procedure as ProcedureRecord))
         : initialClinicData.procedures.map((procedure) => normalizeProcedure(procedure)),
       patientFiles: Array.isArray(parsed.patientFiles) ? parsed.patientFiles : initialClinicData.patientFiles,
-      appointments: Array.isArray(parsed.appointments) ? parsed.appointments : initialClinicData.appointments,
+      appointments: Array.isArray(parsed.appointments)
+        ? parsed.appointments.map((appointment) => normalizeAppointment(appointment as Partial<Appointment>))
+        : initialClinicData.appointments.map((appointment) => normalizeAppointment(appointment)),
       financialEntries: Array.isArray(parsed.financialEntries)
         ? parsed.financialEntries
         : initialClinicData.financialEntries
