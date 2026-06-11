@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { initialClinicData } from "../data/mockData";
 import {
   AnamnesisRecord,
   Appointment,
@@ -24,7 +23,17 @@ type ProcedureInput = Omit<ProcedureRecord, "id">;
 type PatientFileInput = Omit<PatientFileRecord, "id">;
 type AppointmentInput = Omit<Appointment, "id">;
 
-const STORAGE_KEY = "clinicflow-pro:v5";
+const emptyClinicData: PersistedClinicData = {
+  patients: [],
+  products: [],
+  professionals: [],
+  anamneses: [],
+  contracts: [],
+  procedures: [],
+  patientFiles: [],
+  appointments: [],
+  financialEntries: []
+};
 
 function createId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -57,6 +66,7 @@ function normalizePatient(raw: Partial<Patient> & { name?: string }): Patient {
 function normalizeProcedure(raw: ProcedureRecord): ProcedureRecord {
   return {
     ...raw,
+    professionalId: raw.professionalId ?? "",
     photos: Array.isArray(raw.photos)
       ? raw.photos.map((photo) => ({
           ...photo,
@@ -116,7 +126,7 @@ function normalizeAppointment(raw: Partial<Appointment>): Appointment {
     isRescheduled: raw.isRescheduled ?? isLegacyRescheduled,
     durationMinutes: raw.durationMinutes ?? 60,
     status: normalizeAppointmentStatus(raw.status),
-    paymentStatus: raw.paymentStatus ?? (raw.status === "Realizado" ? "Pendente" : "Pendente"),
+    paymentStatus: raw.paymentStatus ?? "Pendente",
     paymentMethod,
     paymentDate: raw.paymentDate ?? "",
     paidAmount: raw.paidAmount ?? 0,
@@ -153,36 +163,26 @@ function normalizeFinancialEntry(raw: Partial<FinancialEntry>): FinancialEntry {
   };
 }
 
-function parseStoredState(): PersistedClinicData {
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return initialClinicData;
-
-    const parsed = JSON.parse(raw) as Partial<PersistedClinicData>;
-    return {
-      patients: Array.isArray(parsed.patients)
-        ? parsed.patients.map((patient) => normalizePatient(patient as Partial<Patient> & { name?: string }))
-        : initialClinicData.patients,
-      products: Array.isArray(parsed.products)
-        ? parsed.products.map((product) => normalizeProduct(product as Partial<Product>))
-        : initialClinicData.products.map((product) => normalizeProduct(product)),
-      professionals: Array.isArray(parsed.professionals) ? parsed.professionals : initialClinicData.professionals,
-      anamneses: Array.isArray(parsed.anamneses) ? parsed.anamneses : initialClinicData.anamneses,
-      contracts: Array.isArray(parsed.contracts) ? parsed.contracts : initialClinicData.contracts,
-      procedures: Array.isArray(parsed.procedures)
-        ? parsed.procedures.map((procedure) => normalizeProcedure(procedure as ProcedureRecord))
-        : initialClinicData.procedures.map((procedure) => normalizeProcedure(procedure)),
-      patientFiles: Array.isArray(parsed.patientFiles) ? parsed.patientFiles : initialClinicData.patientFiles,
-      appointments: Array.isArray(parsed.appointments)
-        ? parsed.appointments.map((appointment) => normalizeAppointment(appointment as Partial<Appointment>))
-        : initialClinicData.appointments.map((appointment) => normalizeAppointment(appointment)),
-      financialEntries: Array.isArray(parsed.financialEntries)
-        ? parsed.financialEntries.map((entry) => normalizeFinancialEntry(entry as Partial<FinancialEntry>))
-        : initialClinicData.financialEntries.map((entry) => normalizeFinancialEntry(entry))
-    };
-  } catch {
-    return initialClinicData;
-  }
+function normalizeClinicData(raw: Partial<PersistedClinicData>): PersistedClinicData {
+  return {
+    patients: Array.isArray(raw.patients)
+      ? raw.patients.map((patient) => normalizePatient(patient as Partial<Patient> & { name?: string }))
+      : [],
+    products: Array.isArray(raw.products) ? raw.products.map((product) => normalizeProduct(product)) : [],
+    professionals: Array.isArray(raw.professionals) ? raw.professionals : [],
+    anamneses: Array.isArray(raw.anamneses) ? raw.anamneses : [],
+    contracts: Array.isArray(raw.contracts) ? raw.contracts : [],
+    procedures: Array.isArray(raw.procedures)
+      ? raw.procedures.map((procedure) => normalizeProcedure(procedure as ProcedureRecord))
+      : [],
+    patientFiles: Array.isArray(raw.patientFiles) ? raw.patientFiles : [],
+    appointments: Array.isArray(raw.appointments)
+      ? raw.appointments.map((appointment) => normalizeAppointment(appointment as Partial<Appointment>))
+      : [],
+    financialEntries: Array.isArray(raw.financialEntries)
+      ? raw.financialEntries.map((entry) => normalizeFinancialEntry(entry as Partial<FinancialEntry>))
+      : []
+  };
 }
 
 function syncFinancialEntries(
@@ -268,26 +268,52 @@ function syncFinancialEntries(
   }, revenueEntries);
 }
 
-export function useClinicData() {
-  const [data, setData] = useState<PersistedClinicData>(() => {
-    const parsed = parseStoredState();
-    return {
-      ...parsed,
-      financialEntries: syncFinancialEntries(parsed.appointments, parsed.financialEntries, parsed.patients, parsed.products)
-    };
+function withSyncedFinancialEntries(data: PersistedClinicData): PersistedClinicData {
+  return {
+    ...data,
+    financialEntries: syncFinancialEntries(data.appointments, data.financialEntries, data.patients, data.products)
+  };
+}
+
+async function saveClinicData(data: PersistedClinicData) {
+  const response = await fetch("/api/clinic", {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data)
   });
 
+  if (!response.ok) throw new Error("Nao foi possivel salvar os dados.");
+}
+
+export function useClinicData() {
+  const [data, setData] = useState<PersistedClinicData>(emptyClinicData);
+
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-  }, [data]);
+    let isMounted = true;
+
+    fetch("/api/clinic")
+      .then((response) => {
+        if (!response.ok) throw new Error("Nao foi possivel carregar os dados.");
+        return response.json() as Promise<PersistedClinicData>;
+      })
+      .then((payload) => {
+        if (isMounted) setData(withSyncedFinancialEntries(normalizeClinicData(payload)));
+      })
+      .catch((error) => {
+        console.error(error);
+        if (isMounted) setData(emptyClinicData);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const setPersistedData = (updater: (current: PersistedClinicData) => PersistedClinicData) => {
     setData((current) => {
-      const next = updater(current);
-      return {
-        ...next,
-        financialEntries: syncFinancialEntries(next.appointments, next.financialEntries, next.patients, next.products)
-      };
+      const next = withSyncedFinancialEntries(updater(current));
+      void saveClinicData(next).catch((error) => console.error(error));
+      return next;
     });
   };
 

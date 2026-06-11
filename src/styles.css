@@ -3,7 +3,7 @@
   --surface: rgba(255, 250, 248, 0.9);
   --surface-strong: rgba(255, 255, 255, 0.94);
   --text: #33272b;
-  --muted: #8f7580;
+  --muted: #765f69;
   --line: rgba(214, 160, 178, 0.24);
   --teal: #b84c7a;
   --ink: #7f2f55;
@@ -206,12 +206,18 @@ th {
   padding: 0.78rem 0.85rem;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.7);
+  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .nav-link:hover,
 .nav-link-active {
   background: linear-gradient(135deg, rgba(216, 75, 133, 0.18), rgba(244, 222, 213, 0.38));
   color: var(--ink);
+}
+
+.nav-link:hover {
+  transform: translateX(2px);
+  box-shadow: 0 10px 20px rgba(127, 47, 85, 0.08);
 }
 
 .nav-icon {
@@ -222,9 +228,21 @@ th {
   place-items: center;
   border-radius: 12px;
   background: rgba(216, 75, 133, 0.1);
-  color: var(--ink);
+  color: #b04a7d;
   font-size: 0.78rem;
   font-weight: 800;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.nav-icon svg {
+  color: #b04a7d;
+  stroke: currentColor;
+}
+
+.nav-link:hover .nav-icon,
+.nav-link-active .nav-icon {
+  background: rgba(216, 75, 133, 0.16);
+  transform: scale(1.04);
 }
 
 .panel-header p,
@@ -295,6 +313,16 @@ th {
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.78);
   box-shadow: 0 12px 28px rgba(127, 47, 85, 0.08);
+}
+
+.online-indicator {
+  width: 0.72rem;
+  height: 0.72rem;
+  display: inline-flex;
+  border-radius: 50%;
+  background: #23c46b;
+  box-shadow: 0 0 0 4px rgba(35, 196, 107, 0.14);
+  cursor: help;
 }
 
 .icon-button {
@@ -422,8 +450,13 @@ th {
   margin-bottom: 1rem;
   border-radius: 16px;
   background: rgba(216, 75, 133, 0.11);
-  color: var(--ink);
+  color: #b04a7d;
   font-weight: 800;
+}
+
+.metric-icon svg {
+  color: #b04a7d;
+  stroke: currentColor;
 }
 
 .beauty-panel {
@@ -758,6 +791,14 @@ th {
   width: min(860px, 100%);
 }
 
+.product-modal-shell {
+  width: min(920px, 100%);
+}
+
+.professional-modal-shell {
+  width: min(900px, 100%);
+}
+
 .reschedule-modal-shell {
   width: min(680px, 100%);
 }
@@ -823,6 +864,21 @@ th {
 }
 
 .appointment-status-cancelado {
+  color: #7f1d1d;
+  background: rgba(239, 68, 68, 0.13);
+}
+
+.professional-status-ativo {
+  color: #226356;
+  background: rgba(111, 154, 141, 0.17);
+}
+
+.professional-status-ferias {
+  color: #935d18;
+  background: rgba(194, 139, 75, 0.18);
+}
+
+.professional-status-inativo {
   color: #7f1d1d;
   background: rgba(239, 68, 68, 0.13);
 }
@@ -1302,6 +1358,28 @@ th {
 .empty-state {
   color: var(--muted);
   text-align: center;
+}
+
+.empty-state-featured {
+  display: grid;
+  justify-items: center;
+  gap: 0.85rem;
+}
+
+.empty-state-featured svg {
+  color: #b04a7d;
+  stroke: currentColor;
+}
+
+.empty-state-icon {
+  width: 3rem;
+  height: 3rem;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  color: var(--ink);
+  background: rgba(216, 75, 133, 0.12);
+  font-weight: 900;
 }
 
 .history-card {

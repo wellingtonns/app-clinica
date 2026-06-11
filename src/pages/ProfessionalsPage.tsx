@@ -1,4 +1,4 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 import { CrudPanel } from "../components/CrudPanel";
 import { PageTopbar } from "../components/PageTopbar";
 import { Professional, RoleName } from "../types";
@@ -23,6 +23,7 @@ const emptyForm: Omit<Professional, "id"> = {
 };
 
 const roleOptions: RoleName[] = ["Administrador", "Recepcao", "Profissional"];
+const statusOptions: Professional["status"][] = ["Ativo", "Ferias", "Inativo"];
 
 export function ProfessionalsPage({
   professionals,
@@ -31,11 +32,48 @@ export function ProfessionalsPage({
   deleteProfessional
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const [specialtyFilter, setSpecialtyFilter] = useState("Todas");
+  const [statusFilter, setStatusFilter] = useState<Professional["status"] | "Todos">("Todos");
   const [form, setForm] = useState(emptyForm);
+
+  const specialties = useMemo(
+    () => Array.from(new Set(professionals.map((professional) => professional.specialty).filter(Boolean))).sort(),
+    [professionals]
+  );
+
+  const filteredProfessionals = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+
+    return professionals.filter((professional) => {
+      const matchesQuery = !normalizedQuery || professional.name.toLowerCase().includes(normalizedQuery);
+      const matchesSpecialty = specialtyFilter === "Todas" || professional.specialty === specialtyFilter;
+      const matchesStatus = statusFilter === "Todos" || professional.status === statusFilter;
+
+      return matchesQuery && matchesSpecialty && matchesStatus;
+    });
+  }, [professionals, query, specialtyFilter, statusFilter]);
 
   const reset = () => {
     setEditingId(null);
     setForm(emptyForm);
+  };
+
+  const openCreateModal = () => {
+    reset();
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (professional: Professional) => {
+    setEditingId(professional.id);
+    setForm(professional);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    reset();
   };
 
   const submit = (event: FormEvent<HTMLFormElement>) => {
@@ -43,120 +81,200 @@ export function ProfessionalsPage({
     if (!form.name.trim() || !form.specialty.trim()) return;
     if (editingId) updateProfessional(editingId, form);
     else createProfessional(form);
-    reset();
+    closeModal();
   };
 
   return (
     <>
-      <PageTopbar title="Equipe" subtitle="Cadastro e gerenciamento da equipe." />
+      <PageTopbar
+        title="Profissionais"
+        subtitle="Cadastro e gerenciamento dos profissionais da clinica"
+        action={
+          <button className="primary-button prominent-button" type="button" onClick={openCreateModal}>
+            Novo profissional
+          </button>
+        }
+      />
 
-      <section className="section page-grid">
-        <CrudPanel title={editingId ? "Editar profissional" : "Novo profissional"} subtitle="Equipe da clinica">
-          <form className="crud-form" onSubmit={submit}>
-            <div className="form-grid form-grid-2">
-              <label>
-                <span>Nome</span>
-                <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required />
+      <section className="section">
+        <CrudPanel title="Lista de profissionais" subtitle="Visao gerencial dos profissionais da clinica">
+          <div className="list-toolbar">
+            <div className="list-toolbar-group">
+              <label className="toolbar-field">
+                <span>Pesquisar por nome</span>
+                <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Nome do profissional" />
               </label>
-              <label>
+              <label className="toolbar-field">
                 <span>Especialidade</span>
-                <input value={form.specialty} onChange={(event) => setForm({ ...form, specialty: event.target.value })} required />
-              </label>
-              <label>
-                <span>Perfil</span>
-                <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as RoleName })}>
-                  {roleOptions.map((role) => (
-                    <option key={role} value={role}>
-                      {role}
+                <select value={specialtyFilter} onChange={(event) => setSpecialtyFilter(event.target.value)}>
+                  <option value="Todas">Todas</option>
+                  {specialties.map((specialty) => (
+                    <option key={specialty} value={specialty}>
+                      {specialty}
                     </option>
                   ))}
                 </select>
               </label>
-              <label>
+              <label className="toolbar-field">
                 <span>Status</span>
-                <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as Professional["status"] })}>
-                  <option value="Ativo">Ativo</option>
-                  <option value="Ferias">Ferias</option>
-                  <option value="Inativo">Inativo</option>
+                <select
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value as Professional["status"] | "Todos")}
+                >
+                  <option value="Todos">Todos</option>
+                  {statusOptions.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
                 </select>
               </label>
-              <label>
-                <span>Telefone</span>
-                <input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
-              </label>
-              <label>
-                <span>Email</span>
-                <input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
-              </label>
-              <label>
-                <span>Conselho/registro</span>
-                <input value={form.council} onChange={(event) => setForm({ ...form, council: event.target.value })} />
-              </label>
-              <label>
-                <span>Comissao</span>
-                <input value={form.commissionRate} onChange={(event) => setForm({ ...form, commissionRate: event.target.value })} />
-              </label>
             </div>
-            <label>
-              <span>Proximo turno</span>
-              <input value={form.nextShift} onChange={(event) => setForm({ ...form, nextShift: event.target.value })} />
-            </label>
-            <div className="form-actions">
-              <button className="primary-button" type="submit">
-                {editingId ? "Salvar alteracoes" : "Cadastrar profissional"}
-              </button>
-              <button className="ghost-button" type="button" onClick={reset}>
-                Limpar
-              </button>
-            </div>
-          </form>
-        </CrudPanel>
-
-        <CrudPanel title="Lista de profissionais" subtitle="Acompanhamento da equipe">
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>Profissional</th>
-                  <th>Perfil</th>
-                  <th>Contato</th>
-                  <th>Status</th>
-                  <th>Acoes</th>
-                </tr>
-              </thead>
-              <tbody>
-                {professionals.map((professional) => (
-                  <tr key={professional.id}>
-                    <td>
-                      <strong>{professional.name}</strong>
-                      <div className="table-subtitle">{professional.specialty}</div>
-                    </td>
-                    <td>{professional.role}</td>
-                    <td>
-                      {professional.phone}
-                      <div className="table-subtitle">{professional.email}</div>
-                    </td>
-                    <td>{professional.status}</td>
-                    <td>
-                      <div className="row-actions">
-                        <button className="inline-button" type="button" onClick={() => {
-                          setEditingId(professional.id);
-                          setForm(professional);
-                        }}>
-                          Editar
-                        </button>
-                        <button className="inline-button danger" type="button" onClick={() => deleteProfessional(professional.id)}>
-                          Excluir
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </div>
+
+          {professionals.length === 0 ? (
+            <div className="empty-state empty-state-featured">
+              <div className="empty-state-icon">P</div>
+              <p>Nenhum profissional cadastrado</p>
+              <button className="primary-button" type="button" onClick={openCreateModal}>
+                Cadastrar primeiro profissional
+              </button>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>Especialidade</th>
+                    <th>Perfil</th>
+                    <th>Contato</th>
+                    <th>Status</th>
+                    <th>Proximo turno</th>
+                    <th>Acoes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredProfessionals.map((professional) => (
+                    <tr key={professional.id}>
+                      <td>
+                        <strong>{professional.name}</strong>
+                        <div className="table-subtitle">{professional.council || "Sem registro informado"}</div>
+                      </td>
+                      <td>{professional.specialty}</td>
+                      <td>{professional.role}</td>
+                      <td>
+                        {professional.phone || "-"}
+                        <div className="table-subtitle">{professional.email || "-"}</div>
+                      </td>
+                      <td>
+                        <span className={`status-pill professional-status-${professional.status.toLowerCase()}`}>
+                          {professional.status}
+                        </span>
+                      </td>
+                      <td>{professional.nextShift || "-"}</td>
+                      <td>
+                        <div className="row-actions">
+                          <button className="inline-button" type="button" onClick={() => openEditModal(professional)}>
+                            Editar
+                          </button>
+                          <button className="inline-button danger" type="button" onClick={() => deleteProfessional(professional.id)}>
+                            Excluir
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {filteredProfessionals.length === 0 ? (
+                    <tr>
+                      <td colSpan={7}>
+                        <div className="empty-state">Nenhum profissional encontrado para os filtros selecionados.</div>
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          )}
         </CrudPanel>
       </section>
+
+      {isModalOpen ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="professional-modal-title">
+          <div className="modal-shell professional-modal-shell">
+            <div className="modal-header">
+              <div>
+                <span className="eyebrow">Profissionais</span>
+                <h3 id="professional-modal-title">{editingId ? "Editar profissional" : "Novo profissional"}</h3>
+              </div>
+              <button className="ghost-button" type="button" onClick={closeModal}>
+                Fechar
+              </button>
+            </div>
+
+            <form className="crud-form modal-content" onSubmit={submit}>
+              <div className="form-grid form-grid-2">
+                <label>
+                  <span>Nome</span>
+                  <input value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required />
+                </label>
+                <label>
+                  <span>Especialidade</span>
+                  <input value={form.specialty} onChange={(event) => setForm({ ...form, specialty: event.target.value })} required />
+                </label>
+                <label>
+                  <span>Perfil</span>
+                  <select value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value as RoleName })}>
+                    {roleOptions.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Status</span>
+                  <select value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value as Professional["status"] })}>
+                    {statusOptions.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  <span>Telefone</span>
+                  <input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
+                </label>
+                <label>
+                  <span>Email</span>
+                  <input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
+                </label>
+                <label>
+                  <span>Conselho/registro</span>
+                  <input value={form.council} onChange={(event) => setForm({ ...form, council: event.target.value })} />
+                </label>
+                <label>
+                  <span>Comissao</span>
+                  <input value={form.commissionRate} onChange={(event) => setForm({ ...form, commissionRate: event.target.value })} />
+                </label>
+              </div>
+              <label>
+                <span>Proximo turno</span>
+                <input value={form.nextShift} onChange={(event) => setForm({ ...form, nextShift: event.target.value })} />
+              </label>
+              <div className="form-actions modal-footer">
+                <button className="ghost-button" type="button" onClick={closeModal}>
+                  Cancelar
+                </button>
+                <button className="primary-button" type="submit">
+                  {editingId ? "Salvar alteracoes" : "Cadastrar profissional"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }
