@@ -1,3 +1,4 @@
+import { CalendarDays, CalendarX, Sparkles, Users, Wallet } from "lucide-react";
 import { Appointment, AppointmentStatus, FinancialEntry, Patient, Professional } from "../types";
 import { formatCurrency, formatDate } from "../utils/format";
 
@@ -97,13 +98,13 @@ export function DashboardPage({ patients, professionals, appointments }: Props) 
         todaysAppointments.length > 0
           ? `${todayStatusCounts.Confirmado} confirmados | ${todayStatusCounts.Agendado} aguardando confirmacao | ${todayStatusCounts.Realizado} realizados`
           : "Nao ha agendamentos para hoje",
-      icon: "A"
+      icon: CalendarDays
     },
     {
       label: "Clientes ativos",
       value: String(patients.length),
       detail: `${recentPatientIds.size} pacientes com movimentacao recente`,
-      icon: "C"
+      icon: Users
     },
     {
       label: "Faturamento do mes",
@@ -112,13 +113,13 @@ export function DashboardPage({ patients, professionals, appointments }: Props) 
         completedThisMonth.length > 0
           ? `${completedThisMonth.length} procedimentos concluidos no mes`
           : "Sem faturamento no periodo",
-      icon: "F"
+      icon: Wallet
     },
     {
       label: "Procedimentos realizados",
       value: String(completedThisMonth.length),
       detail: completedThisMonth.length > 0 ? "No mes atual" : "Nenhum procedimento realizado",
-      icon: "P"
+      icon: Sparkles
     }
   ];
 
@@ -137,18 +138,25 @@ export function DashboardPage({ patients, professionals, appointments }: Props) 
           </button>
           <div className="avatar">A</div>
           <strong>Administradora</strong>
+          <span className="online-indicator" title="Sistema Online" aria-label="Sistema Online" />
         </div>
       </header>
 
       <section className="metric-grid beauty-metrics" aria-label="Indicadores principais">
-        {indicators.map((indicator) => (
-          <article className="metric-card beauty-metric-card" key={indicator.label}>
-            <div className="metric-icon">{indicator.icon}</div>
-            <span>{indicator.label}</span>
-            <strong>{indicator.value}</strong>
-            <small>{indicator.detail}</small>
-          </article>
-        ))}
+        {indicators.map((indicator) => {
+          const Icon = indicator.icon;
+
+          return (
+            <article className="metric-card beauty-metric-card" key={indicator.label}>
+              <div className="metric-icon">
+                <Icon aria-hidden="true" size={20} strokeWidth={2} />
+              </div>
+              <span>{indicator.label}</span>
+              <strong>{indicator.value}</strong>
+              <small>{indicator.detail}</small>
+            </article>
+          );
+        })}
       </section>
 
       <section className="section">
@@ -194,8 +202,9 @@ export function DashboardPage({ patients, professionals, appointments }: Props) 
               </table>
             </div>
           ) : (
-            <div className="empty-state">
-              {todaysAppointments.length === 0 ? "Nao ha agendamentos para hoje" : "Nenhum atendimento futuro"}
+            <div className="empty-state empty-state-featured">
+              <CalendarX aria-hidden="true" size={30} strokeWidth={1.8} />
+              <p>{todaysAppointments.length === 0 ? "Nenhum agendamento para hoje" : "Nenhum atendimento futuro"}</p>
             </div>
           )}
         </article>

@@ -1,4 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
+import { CalendarX } from "lucide-react";
 import { CrudPanel } from "../components/CrudPanel";
 import { PageTopbar } from "../components/PageTopbar";
 import { Appointment, AppointmentStatus, FinancialStatus, Patient, Professional } from "../types";
@@ -535,7 +536,10 @@ export function SchedulePage({
                 {visibleAppointments.length === 0 ? (
                   <tr>
                     <td colSpan={8}>
-                      <div className="empty-state">Nenhum agendamento encontrado para o periodo selecionado.</div>
+                      <div className="empty-state empty-state-featured">
+                        <CalendarX aria-hidden="true" size={30} strokeWidth={1.8} />
+                        <p>Nenhum agendamento para hoje</p>
+                      </div>
                     </td>
                   </tr>
                 ) : null}

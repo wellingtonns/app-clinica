@@ -1,3 +1,4 @@
+import { BarChart3, CalendarDays, Package, Stethoscope, Users, Wallet } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { ReactNode } from "react";
 
@@ -8,6 +9,15 @@ type Props = {
 function navClassName({ isActive }: { isActive: boolean }) {
   return `nav-link ${isActive ? "nav-link-active" : ""}`.trim();
 }
+
+const navItems = [
+  { to: "/", label: "Dashboard", icon: BarChart3, end: true },
+  { to: "/agenda", label: "Agendamentos", icon: CalendarDays },
+  { to: "/pacientes", label: "Clientes", icon: Users },
+  { to: "/financeiro", label: "Financeiro", icon: Wallet },
+  { to: "/produtos", label: "Produtos", icon: Package },
+  { to: "/profissionais", label: "Profissionais", icon: Stethoscope }
+];
 
 export function Layout({ children }: Props) {
   return (
@@ -26,30 +36,18 @@ export function Layout({ children }: Props) {
 
         <nav className="nav-card">
           <span>Menu principal</span>
-          <NavLink to="/" end className={navClassName}>
-            <span className="nav-icon">D</span>
-            Dashboard
-          </NavLink>
-          <NavLink to="/agenda" className={navClassName}>
-            <span className="nav-icon">A</span>
-            Agendamentos
-          </NavLink>
-          <NavLink to="/pacientes" className={navClassName}>
-            <span className="nav-icon">C</span>
-            Clientes
-          </NavLink>
-          <NavLink to="/financeiro" className={navClassName}>
-            <span className="nav-icon">F</span>
-            Financeiro
-          </NavLink>
-          <NavLink to="/produtos" className={navClassName}>
-            <span className="nav-icon">P</span>
-            Produtos
-          </NavLink>
-          <NavLink to="/profissionais" className={navClassName}>
-            <span className="nav-icon">E</span>
-            Equipe
-          </NavLink>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+
+            return (
+              <NavLink to={item.to} end={item.end} className={navClassName} key={item.to}>
+                <span className="nav-icon">
+                  <Icon aria-hidden="true" size={20} strokeWidth={2} />
+                </span>
+                {item.label}
+              </NavLink>
+            );
+          })}
         </nav>
       </aside>
 

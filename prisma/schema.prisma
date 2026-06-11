@@ -1,0 +1,223 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  role      String   @default("Administrador")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Patient {
+  id                  String @id
+  fullName            String
+  birthDate           String @default("")
+  cpf                 String @default("")
+  phone               String @default("")
+  email               String @default("")
+  address             String @default("")
+  generalObservations String @default("")
+  allergySummary      String @default("")
+  restrictionSummary  String @default("")
+  status              String @default("Ativo")
+  createdAt           String
+  updatedAt           String
+
+  appointments     Appointment[]
+  anamneses        AnamnesisRecord[]
+  contracts        ContractRecord[]
+  procedures       ProcedureRecord[]
+  patientFiles     PatientFileRecord[]
+  financialEntries FinancialEntry[]
+}
+
+model Professional {
+  id             String @id
+  name           String
+  specialty      String @default("")
+  role           String @default("Profissional")
+  commissionRate String @default("")
+  nextShift      String @default("")
+  phone          String @default("")
+  email          String @default("")
+  council        String @default("")
+  status         String @default("Ativo")
+
+  appointments Appointment[]
+  procedures   ProcedureRecord[]
+}
+
+model Appointment {
+  id               String  @id
+  patientId        String
+  professionalId   String
+  procedure        String
+  date             String
+  time             String
+  originalDate     String?
+  originalTime     String?
+  rescheduleReason String?
+  isRescheduled    Boolean @default(false)
+  durationMinutes  Int
+  status           String
+  paymentStatus    String  @default("Pendente")
+  paymentMethod    String  @default("")
+  paymentDate      String  @default("")
+  paidAmount       Float   @default(0)
+  installments     Int?
+  notes            String  @default("")
+  price            Float   @default(0)
+  history          Json    @default("[]")
+
+  patient          Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  professional     Professional     @relation(fields: [professionalId], references: [id], onDelete: Cascade)
+  payment          Payment?
+  financialEntries FinancialEntry[]
+
+  @@index([date, time])
+  @@index([professionalId, date])
+}
+
+model Payment {
+  id            String @id
+  appointmentId String @unique
+  status        String
+  method        String @default("")
+  paymentDate   String @default("")
+  amount        Float
+  paidAmount    Float  @default(0)
+  balanceAmount Float  @default(0)
+  installments  Int?
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+}
+
+model FinancialEntry {
+  id            String  @id
+  type          String
+  appointmentId String?
+  productId     String?
+  patientId     String?
+  procedure     String?
+  productName   String?
+  description   String
+  date          String
+  amount        Float
+  paidAmount    Float
+  balanceAmount Float
+  status        String
+  paymentMethod String
+  paymentDate   String
+  installments  Int?
+  source        String
+
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  product     Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  patient     Patient?     @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([type, date])
+  @@index([appointmentId])
+  @@index([productId])
+}
+
+model Product {
+  id           String @id
+  name         String
+  category     String @default("")
+  sku          String @default("")
+  batch        String @default("")
+  expiry       String @default("")
+  price        Float  @default(0)
+  stock        Float  @default(0)
+  minimumStock Float  @default(0)
+  unit         String @default("")
+  unitCost     Float  @default(0)
+  purchaseDate String @default("")
+  supplier     String @default("")
+  description  String @default("")
+
+  financialEntries FinancialEntry[]
+  stockMovements   StockMovement[]
+}
+
+model StockMovement {
+  id          String   @id @default(cuid())
+  productId   String
+  type        String
+  quantity    Float
+  unitCost    Float
+  totalCost   Float
+  date        String
+  description String   @default("")
+  createdAt   DateTime @default(now())
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model AnamnesisRecord {
+  id                       String @id
+  patientId                String
+  version                  Int
+  createdAt                String
+  updatedAt                String
+  updatedBy                String
+  healthHistory            String @default("")
+  priorDiseases            String @default("")
+  surgeries                String @default("")
+  treatments               String @default("")
+  allergies                String @default("")
+  medications              String @default("")
+  habits                   String @default("")
+  mainComplaint            String @default("")
+  professionalObservations String @default("")
+  checkboxes               Json   @default("{}")
+  attachments              Json   @default("[]")
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model ContractRecord {
+  id           String @id
+  patientId    String
+  version      Int
+  contractType String @default("")
+  signedAt     String @default("")
+  observations String @default("")
+  file         Json
+  uploadedAt   String
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
+
+model ProcedureRecord {
+  id             String  @id
+  patientId      String
+  name           String
+  procedureType  String  @default("")
+  date           String
+  professionalId String?
+  observations   String  @default("")
+  photos         Json    @default("[]")
+
+  patient      Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  professional Professional? @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+}
+
+model PatientFileRecord {
+  id          String @id
+  patientId   String
+  category    String
+  description String @default("")
+  file        Json
+
+  patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+}
