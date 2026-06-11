@@ -1,15 +1,15 @@
 # ClinicFlow Pro
 
-Prototipo de plataforma para clinica com foco em:
+Protótipo de plataforma para clínica com foco em:
 
 - cadastro de pacientes
 - agenda inteligente
 - estoque
-- prontuario eletronico
+- prontuário eletrônico
 - financeiro
-- dashboard executivo
+- painel executivo
 - controle por profissional
-- comunicacao automatica
+- comunicação automática
 
 ## Stack
 
@@ -32,9 +32,9 @@ npm install
 npm run dev
 ```
 
-## Observacao
+## Observação
 
-Este projeto e um frontend demonstrativo com dados mockados. A arquitetura alvo prevista para evolucao e:
+Este projeto é um frontend demonstrativo com dados mockados. A arquitetura alvo prevista para evolução é:
 
 - Backend Node.js com NestJS ou Express
 - PostgreSQL
@@ -43,7 +43,7 @@ Este projeto e um frontend demonstrativo com dados mockados. A arquitetura alvo 
 - Ingress NGINX
 - Cert-Manager
 
-## Modelo inicial de dominio
+## Modelo inicial de domínio
 
 - `users`
 - `roles`

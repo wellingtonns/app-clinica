@@ -91,7 +91,7 @@ export function FinancePage({
     .reduce((total, entry) => total + entry.amount, 0);
 
   const estimatedProfit = revenueReceived - productExpenses;
-  const receivedByPaymentMethod = ["Pix", "Cartao de debito", "Cartao de credito", "Dinheiro"].map((method) => ({
+  const receivedByPaymentMethod = ["Pix", "Cartão de débito", "Cartão de crédito", "Dinheiro"].map((method) => ({
     method,
     amount: financialEntries
       .filter((entry) => entry.type === "Receita" && entry.paymentMethod === method && (entry.status === "Pago" || entry.status === "Parcial"))
@@ -147,14 +147,14 @@ export function FinancePage({
       </section>
 
       <section className="section">
-        <CrudPanel title="Lancamentos financeiros" subtitle="Receitas da agenda e despesas do estoque">
+        <CrudPanel title="Lançamentos financeiros" subtitle="Receitas da agenda e despesas do estoque">
           <div className="toolbar">
             <label className="toolbar-field">
               <span>De</span>
               <input type="date" value={fromDate} onChange={(event) => setFromDate(event.target.value)} />
             </label>
             <label className="toolbar-field">
-              <span>Ate</span>
+              <span>Até</span>
               <input type="date" value={toDate} onChange={(event) => setToDate(event.target.value)} />
             </label>
             <label className="toolbar-field">
@@ -218,8 +218,8 @@ export function FinancePage({
                 <tr>
                   <th>Data</th>
                   <th>Tipo</th>
-                  <th>Descricao</th>
-                  <th>Cliente</th>
+                  <th>Descrição</th>
+                  <th>Paciente</th>
                   <th>Profissional</th>
                   <th>Procedimento/Produto</th>
                   <th>Forma</th>
@@ -251,7 +251,7 @@ export function FinancePage({
                                 paymentMethod: event.target.value,
                                 paymentDate: entry.paymentDate,
                                 paidAmount,
-                                installments: event.target.value === "Cartao de credito" ? entry.installments ?? 1 : undefined
+                                installments: event.target.value === "Cartão de crédito" ? entry.installments ?? 1 : undefined
                               })
                             }
                           />
@@ -299,7 +299,7 @@ export function FinancePage({
                 {filteredEntries.length === 0 ? (
                   <tr>
                     <td colSpan={10}>
-                      <div className="empty-state">Nenhum lancamento encontrado para os filtros selecionados.</div>
+                      <div className="empty-state">Nenhum lançamento encontrado para os filtros selecionados.</div>
                     </td>
                   </tr>
                 ) : null}

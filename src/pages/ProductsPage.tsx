@@ -74,7 +74,7 @@ export function ProductsPage({ products, createProduct, updateProduct, deletePro
       />
 
       <section className="section">
-        <CrudPanel title="Lista de produtos" subtitle="Visao operacional do estoque">
+        <CrudPanel title="Lista de produtos" subtitle="Visão operacional do estoque">
           {products.length === 0 ? (
             <div className="empty-state">
               <p>Nenhum produto cadastrado ainda</p>
@@ -90,10 +90,10 @@ export function ProductsPage({ products, createProduct, updateProduct, deletePro
                     <th>Produto</th>
                     <th>Categoria</th>
                     <th>Estoque</th>
-                    <th>Custo unitario</th>
+                    <th>Custo unitário</th>
                     <th>Total em estoque</th>
                     <th>Compra</th>
-                    <th>Acoes</th>
+                    <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -164,7 +164,7 @@ export function ProductsPage({ products, createProduct, updateProduct, deletePro
                   <input type="number" min="0" value={form.stock} onChange={(event) => setForm({ ...form, stock: Number(event.target.value) })} />
                 </label>
                 <label>
-                  <span>Custo unitario</span>
+                  <span>Custo unitário</span>
                   <input
                     type="number"
                     min="0"
@@ -187,7 +187,7 @@ export function ProductsPage({ products, createProduct, updateProduct, deletePro
                 </label>
               </div>
               <label>
-                <span>Observacoes</span>
+                <span>Observações</span>
                 <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={3} />
               </label>
               <div className="form-actions modal-footer">
@@ -195,7 +195,7 @@ export function ProductsPage({ products, createProduct, updateProduct, deletePro
                   Cancelar
                 </button>
                 <button className="primary-button" type="submit">
-                  {editingId ? "Salvar alteracoes" : "Cadastrar produto"}
+                  {editingId ? "Salvar alterações" : "Cadastrar produto"}
                 </button>
               </div>
             </form>

@@ -11,9 +11,9 @@ function navClassName({ isActive }: { isActive: boolean }) {
 }
 
 const navItems = [
-  { to: "/", label: "Dashboard", icon: BarChart3, end: true },
+  { to: "/", label: "Painel", icon: BarChart3, end: true },
   { to: "/agenda", label: "Agendamentos", icon: CalendarDays },
-  { to: "/pacientes", label: "Clientes", icon: Users },
+  { to: "/pacientes", label: "Pacientes", icon: Users },
   { to: "/financeiro", label: "Financeiro", icon: Wallet },
   { to: "/produtos", label: "Produtos", icon: Package },
   { to: "/profissionais", label: "Profissionais", icon: Stethoscope }
@@ -24,7 +24,7 @@ export function Layout({ children }: Props) {
     <main className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <img className="brand-logo" src="/stetic-soft-logo.png" alt="Stetic Soft - Gestao para clinicas" />
+          <img className="brand-logo" src="/stetic-soft-logo.png" alt="Stetic Soft - Gestão para clínicas" />
         </div>
 
         <nav className="nav-card">

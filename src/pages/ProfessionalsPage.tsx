@@ -22,8 +22,13 @@ const emptyForm: Omit<Professional, "id"> = {
   status: "Ativo"
 };
 
-const roleOptions: RoleName[] = ["Administrador", "Recepcao", "Profissional"];
-const statusOptions: Professional["status"][] = ["Ativo", "Ferias", "Inativo"];
+const roleOptions: RoleName[] = ["Administrador", "Recepção", "Profissional"];
+const statusOptions: Professional["status"][] = ["Ativo", "Férias", "Inativo"];
+
+function getProfessionalStatusClass(status: Professional["status"]) {
+  const normalizedStatus = status.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  return `status-pill professional-status-${normalizedStatus}`;
+}
 
 export function ProfessionalsPage({
   professionals,
@@ -88,7 +93,7 @@ export function ProfessionalsPage({
     <>
       <PageTopbar
         title="Profissionais"
-        subtitle="Cadastro e gerenciamento dos profissionais da clinica"
+        subtitle="Cadastro e gerenciamento dos profissionais da clínica"
         action={
           <button className="primary-button prominent-button" type="button" onClick={openCreateModal}>
             Novo profissional
@@ -97,7 +102,7 @@ export function ProfessionalsPage({
       />
 
       <section className="section">
-        <CrudPanel title="Lista de profissionais" subtitle="Visao gerencial dos profissionais da clinica">
+        <CrudPanel title="Lista de profissionais" subtitle="Visão gerencial dos profissionais da clínica">
           <div className="list-toolbar">
             <div className="list-toolbar-group">
               <label className="toolbar-field">
@@ -150,8 +155,8 @@ export function ProfessionalsPage({
                     <th>Perfil</th>
                     <th>Contato</th>
                     <th>Status</th>
-                    <th>Proximo turno</th>
-                    <th>Acoes</th>
+                    <th>Próximo turno</th>
+                    <th>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -168,7 +173,7 @@ export function ProfessionalsPage({
                         <div className="table-subtitle">{professional.email || "-"}</div>
                       </td>
                       <td>
-                        <span className={`status-pill professional-status-${professional.status.toLowerCase()}`}>
+                        <span className={getProfessionalStatusClass(professional.status)}>
                           {professional.status}
                         </span>
                       </td>
@@ -247,7 +252,7 @@ export function ProfessionalsPage({
                   <input value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
                 </label>
                 <label>
-                  <span>Email</span>
+                  <span>E-mail</span>
                   <input type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
                 </label>
                 <label>
@@ -255,12 +260,12 @@ export function ProfessionalsPage({
                   <input value={form.council} onChange={(event) => setForm({ ...form, council: event.target.value })} />
                 </label>
                 <label>
-                  <span>Comissao</span>
+                  <span>Comissão</span>
                   <input value={form.commissionRate} onChange={(event) => setForm({ ...form, commissionRate: event.target.value })} />
                 </label>
               </div>
               <label>
-                <span>Proximo turno</span>
+                <span>Próximo turno</span>
                 <input value={form.nextShift} onChange={(event) => setForm({ ...form, nextShift: event.target.value })} />
               </label>
               <div className="form-actions modal-footer">
@@ -268,7 +273,7 @@ export function ProfessionalsPage({
                   Cancelar
                 </button>
                 <button className="primary-button" type="submit">
-                  {editingId ? "Salvar alteracoes" : "Cadastrar profissional"}
+                  {editingId ? "Salvar alterações" : "Cadastrar profissional"}
                 </button>
               </div>
             </form>

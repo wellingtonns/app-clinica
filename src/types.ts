@@ -1,10 +1,10 @@
-export type RoleName = "Administrador" | "Recepcao" | "Profissional";
+export type RoleName = "Administrador" | "Recepção" | "Profissional";
 export type AppointmentStatus = "Agendado" | "Confirmado" | "Desmarcado" | "Realizado" | "Cancelado";
 export type FinancialStatus = "Pago" | "Pendente" | "Parcial" | "Cancelado";
 export type FinancialEntryType = "Receita" | "Despesa";
 export type PatientStatus = "Ativo" | "Inativo";
-export type PhotoCategory = "Antes" | "Depois" | "Durante" | "Evolucao";
-export type BodyArea = "Geral" | "Rosto" | "Costas" | "Barriga" | "Gluteos" | "Pernas" | "Bracos";
+export type PhotoCategory = "Antes" | "Depois" | "Durante" | "Evolução";
+export type BodyArea = "Geral" | "Rosto" | "Costas" | "Barriga" | "Glúteos" | "Pernas" | "Braços";
 export type FileCategory = "Geral" | "Anamnese" | "Exame" | "Documento";
 
 export interface MetricCard {
@@ -71,7 +71,7 @@ export interface Professional {
   phone: string;
   email: string;
   council: string;
-  status: "Ativo" | "Ferias" | "Inativo";
+  status: "Ativo" | "Férias" | "Inativo";
 }
 
 export interface AnamnesisCheckboxes {

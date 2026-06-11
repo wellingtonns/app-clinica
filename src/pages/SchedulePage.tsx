@@ -14,11 +14,11 @@ type Props = {
   deleteAppointment: (id: string) => void;
 };
 
-type ViewMode = "Diaria" | "Semanal";
+type ViewMode = "Diária" | "Semanal";
 
 const statusOptions: AppointmentStatus[] = ["Agendado", "Confirmado", "Desmarcado", "Realizado", "Cancelado"];
 const paymentStatusOptions: FinancialStatus[] = ["Pendente", "Pago", "Parcial", "Cancelado"];
-const paymentMethodOptions = ["Pix", "Cartao de debito", "Cartao de credito", "Dinheiro"];
+const paymentMethodOptions = ["Pix", "Cartão de débito", "Cartão de crédito", "Dinheiro"];
 const currentUserName = "Administradora";
 const blockingStatuses: AppointmentStatus[] = ["Agendado", "Confirmado", "Realizado"];
 const businessStartMinutes = 8 * 60;
@@ -185,15 +185,15 @@ function buildConflictMessage(
 ) {
   const start = timeToMinutes(time);
   const conflict = getScheduleConflict(appointments, professionalId, date, time, durationMinutes, editingId);
-  if (start === null || !conflict) return "Este profissional ja possui um agendamento nesse horario.";
+  if (start === null || !conflict) return "Este profissional já possui um agendamento nesse horário.";
 
   if (conflict.start > start) {
-    return `Nao foi possivel agendar. Este profissional so possui horario livre das ${time} as ${minutesToTime(
+    return `Não foi possível agendar. Este profissional só possui horário livre das ${time} às ${minutesToTime(
       conflict.start
-    )}, pois ja existe outro paciente agendado a partir das ${minutesToTime(conflict.start)}.`;
+    )}, pois já existe outro paciente agendado a partir das ${minutesToTime(conflict.start)}.`;
   }
 
-  return `Nao foi possivel agendar. Este profissional ja possui outro paciente entre ${minutesToTime(
+  return `Não foi possível agendar. Este profissional já possui outro paciente entre ${minutesToTime(
     conflict.start
   )} e ${minutesToTime(conflict.end)}.`;
 }
@@ -237,7 +237,7 @@ export function SchedulePage({
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [viewMode, setViewMode] = useState<ViewMode>("Diaria");
+  const [viewMode, setViewMode] = useState<ViewMode>("Diária");
   const [referenceDate, setReferenceDate] = useState(getTodayIso());
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [form, setForm] = useState<Omit<Appointment, "id">>({
@@ -259,7 +259,7 @@ export function SchedulePage({
 
   const visibleAppointments = useMemo(() => {
     const sorted = [...appointments].sort((left, right) => `${left.date}${left.time}`.localeCompare(`${right.date}${right.time}`));
-    if (viewMode === "Diaria") return sorted.filter((item) => item.date === referenceDate);
+    if (viewMode === "Diária") return sorted.filter((item) => item.date === referenceDate);
 
     const range = getWeekRange(referenceDate);
     return sorted.filter((item) => item.date >= range.start && item.date <= range.end);
@@ -324,9 +324,9 @@ export function SchedulePage({
     if (!form.professionalId) return "Selecione uma profissional.";
     if (!form.procedure.trim()) return "Informe o procedimento.";
     if (!form.date) return "Informe a data do atendimento.";
-    if (!form.time) return "Informe o horario do atendimento.";
-    if (!form.durationMinutes || form.durationMinutes < 15) return "Informe uma duracao valida.";
-    if (form.price < 0) return "Informe um valor valido.";
+    if (!form.time) return "Informe o horário do atendimento.";
+    if (!form.durationMinutes || form.durationMinutes < 15) return "Informe uma duração válida.";
+    if (form.price < 0) return "Informe um valor válido.";
     if (form.paymentStatus === "Pago" && form.paidAmount !== form.price) {
       return "Para pagamento Pago, o valor pago deve ser igual ao valor do procedimento.";
     }
@@ -339,8 +339,8 @@ export function SchedulePage({
     if (form.paymentStatus === "Cancelado" && (form.paidAmount ?? 0) !== 0) {
       return "Para pagamento Cancelado, o valor pago deve ser zero.";
     }
-    if (form.paymentMethod === "Cartao de credito" && !form.installments) {
-      return "Informe a quantidade de parcelas para pagamento no cartao de credito.";
+    if (form.paymentMethod === "Cartão de crédito" && !form.installments) {
+      return "Informe a quantidade de parcelas para pagamento no cartão de crédito.";
     }
     return null;
   };
@@ -394,10 +394,10 @@ export function SchedulePage({
         procedure: form.procedure.trim(),
         notes: form.notes.trim(),
         paymentStatus: form.paymentStatus ?? "Pendente",
-        paymentMethod: form.paymentMethod === "Cartao de credito" ? form.paymentMethod : form.paymentMethod,
+        paymentMethod: form.paymentMethod === "Cartão de crédito" ? form.paymentMethod : form.paymentMethod,
         paymentDate: form.paymentDate,
         paidAmount: form.paymentStatus === "Pago" ? form.price : form.paymentStatus === "Parcial" ? form.paidAmount ?? 0 : 0,
-        installments: form.paymentMethod === "Cartao de credito" ? form.installments : undefined,
+        installments: form.paymentMethod === "Cartão de crédito" ? form.installments : undefined,
         originalDate: isRescheduled ? currentAppointment?.originalDate ?? currentAppointment?.date ?? form.originalDate : undefined,
         originalTime: isRescheduled ? currentAppointment?.originalTime ?? currentAppointment?.time ?? form.originalTime : undefined,
         rescheduleReason: isRescheduled ? form.rescheduleReason?.trim() : undefined,
@@ -443,7 +443,7 @@ export function SchedulePage({
       setIsModalOpen(false);
       reset();
     } catch {
-      setFeedback({ type: "error", message: "Nao foi possivel salvar o agendamento. Tente novamente." });
+      setFeedback({ type: "error", message: "Não foi possível salvar o agendamento. Tente novamente." });
     }
   };
 
@@ -451,7 +451,7 @@ export function SchedulePage({
     <>
       <PageTopbar
         title="Agendamentos"
-        subtitle="Controle da agenda da clinica"
+        subtitle="Controle da agenda da clínica"
         action={
           <button className="primary-button prominent-button" type="button" onClick={openCreateModal}>
             Novo agendamento
@@ -460,16 +460,16 @@ export function SchedulePage({
       />
 
       <section className="section">
-        <CrudPanel title="Agenda operacional" subtitle="Visualizacao diaria ou semanal">
+        <CrudPanel title="Agenda operacional" subtitle="Visualização diária ou semanal">
           <div className="schedule-panel-header">
             <div className="toolbar schedule-toolbar">
               <div className="segmented-control">
                 <button
-                  className={`inline-button ${viewMode === "Diaria" ? "segmented-active" : ""}`}
+                  className={`inline-button ${viewMode === "Diária" ? "segmented-active" : ""}`}
                   type="button"
-                  onClick={() => setViewMode("Diaria")}
+                  onClick={() => setViewMode("Diária")}
                 >
-                  Diaria
+                  Diária
                 </button>
                 <button
                   className={`inline-button ${viewMode === "Semanal" ? "segmented-active" : ""}`}
@@ -480,7 +480,7 @@ export function SchedulePage({
                 </button>
               </div>
               <label className="toolbar-field">
-                <span>Data de referencia</span>
+                <span>Data de referência</span>
                 <input type="date" value={referenceDate} onChange={(event) => setReferenceDate(event.target.value)} />
               </label>
             </div>
@@ -493,13 +493,13 @@ export function SchedulePage({
               <thead>
                 <tr>
                   <th>Data</th>
-                  <th>Horario</th>
+                  <th>Horário</th>
                   <th>Paciente</th>
                   <th>Profissional</th>
                   <th>Procedimento</th>
                   <th>Status</th>
                   <th>Valor</th>
-                  <th>Acoes</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -639,7 +639,7 @@ export function SchedulePage({
                 <div className="schedule-picker-header">
                   <div>
                     <h4>Pagamento</h4>
-                    <p>Dados usados automaticamente no modulo financeiro.</p>
+                    <p>Dados usados automaticamente no módulo financeiro.</p>
                   </div>
                 </div>
                 <div className="form-grid form-grid-2">
@@ -671,7 +671,7 @@ export function SchedulePage({
                         setForm({
                           ...form,
                           paymentMethod: event.target.value,
-                          installments: event.target.value === "Cartao de credito" ? form.installments ?? 1 : undefined
+                          installments: event.target.value === "Cartão de crédito" ? form.installments ?? 1 : undefined
                         })
                       }
                     >
@@ -701,7 +701,7 @@ export function SchedulePage({
                       onChange={(event) => setForm({ ...form, paymentDate: event.target.value })}
                     />
                   </label>
-                  {form.paymentMethod === "Cartao de credito" ? (
+                  {form.paymentMethod === "Cartão de crédito" ? (
                     <label>
                       <span>Quantidade de parcelas</span>
                       <select
@@ -723,10 +723,10 @@ export function SchedulePage({
               <section className="schedule-picker">
                 <div className="schedule-picker-header">
                   <div>
-                    <h4>Horarios disponiveis</h4>
+                    <h4>Horários disponíveis</h4>
                     <p>
                       {form.professionalId && form.date && form.procedure.trim()
-                        ? "Selecione um horario livre em intervalos de 30 minutos."
+                        ? "Selecione um horário livre em intervalos de 30 minutos."
                         : "Selecione profissional, data e procedimento para carregar a grade."}
                     </p>
                   </div>
@@ -782,12 +782,12 @@ export function SchedulePage({
               </section>
 
               <label>
-                <span>Observacoes</span>
+                <span>Observações</span>
                 <textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} rows={3} />
               </label>
               {form.isRescheduled ? (
                 <label>
-                  <span>Motivo da remarcacao</span>
+                  <span>Motivo da remarcação</span>
                   <textarea
                     value={form.rescheduleReason ?? ""}
                     onChange={(event) => setForm({ ...form, rescheduleReason: event.target.value })}
@@ -800,7 +800,7 @@ export function SchedulePage({
                   Cancelar
                 </button>
                 <button className="primary-button" type="submit">
-                  {editingId ? "Salvar alteracoes" : "Marcar horario"}
+                  {editingId ? "Salvar alterações" : "Marcar horário"}
                 </button>
               </div>
             </form>

@@ -5,7 +5,7 @@ function escapePdfText(value: string) {
 }
 
 function formatDate(value: string) {
-  if (!value) return "Nao informado";
+  if (!value) return "Não informado";
   const date = new Date(`${value}T12:00:00`);
   if (Number.isNaN(date.getTime())) return value;
   return new Intl.DateTimeFormat("pt-BR").format(date);
@@ -17,23 +17,23 @@ function buildContractLines(patient: Patient, anamnesis?: AnamnesisRecord, proce
   return [
     "Contrato de Atendimento e Consentimento",
     "",
-    `Paciente: ${patient.fullName || "Nao informado"}`,
-    `Documento: ${patient.cpf || "Nao informado"}`,
-    `Telefone: ${patient.phone || "Nao informado"}`,
-    `E-mail: ${patient.email || "Nao informado"}`,
-    `Endereco: ${patient.address || "Nao informado"}`,
+    `Paciente: ${patient.fullName || "Não informado"}`,
+    `Documento: ${patient.cpf || "Não informado"}`,
+    `Telefone: ${patient.phone || "Não informado"}`,
+    `E-mail: ${patient.email || "Não informado"}`,
+    `Endereço: ${patient.address || "Não informado"}`,
     "",
     `Procedimento/servico: ${procedure?.name || procedure?.procedureType || "A definir"}`,
-    `Data de referencia: ${formatDate(procedure?.date || new Date().toISOString().slice(0, 10))}`,
-    `Objetivo do paciente: ${anamnesis?.mainComplaint || "Nao informado"}`,
+    `Data de referência: ${formatDate(procedure?.date || new Date().toISOString().slice(0, 10))}`,
+    `Objetivo do paciente: ${anamnesis?.mainComplaint || "Não informado"}`,
     "",
     "Normas e regras:",
-    "1. O paciente declara que as informacoes fornecidas sao verdadeiras.",
+    "1. O paciente declara que as informações fornecidas são verdadeiras.",
     "2. O paciente esta ciente das orientacoes e cuidados antes e apos o atendimento.",
     "3. O comparecimento e a continuidade do tratamento dependem da avaliacao profissional.",
-    "4. Em caso de intercorrencias, o paciente deve comunicar a clinica imediatamente.",
+    "4. Em caso de intercorrências, o paciente deve comunicar a clínica imediatamente.",
     "",
-    `Observacoes clinicas: ${anamnesis?.professionalObservations || "Sem observacoes adicionais."}`,
+    `Observações clínicas: ${anamnesis?.professionalObservations || "Sem observações adicionais."}`,
     "",
     `Local e data: ${city}, ${formatDate(new Date().toISOString().slice(0, 10))}`,
     "",
@@ -108,4 +108,3 @@ export function createGeneratedContractAsset(
     description: "Contrato gerado automaticamente"
   };
 }
-

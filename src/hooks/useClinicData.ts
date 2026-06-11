@@ -3,15 +3,18 @@ import {
   AnamnesisRecord,
   Appointment,
   AppointmentStatus,
+  BodyArea,
   ContractRecord,
   FinancialEntry,
   FinancialStatus,
   Patient,
   PatientFileRecord,
   PersistedClinicData,
+  PhotoCategory,
   ProcedureRecord,
   Product,
-  Professional
+  Professional,
+  RoleName
 } from "../types";
 
 type PatientInput = Omit<Patient, "id" | "createdAt" | "updatedAt">;
@@ -43,6 +46,42 @@ function toIsoStamp() {
   return new Date().toISOString();
 }
 
+function normalizeRoleName(value: unknown): RoleName {
+  return value === "Recepcao" || value === "Recepção" ? "Recepção" : value === "Administrador" ? "Administrador" : "Profissional";
+}
+
+function normalizeProfessionalStatus(value: unknown): Professional["status"] {
+  if (value === "Ferias" || value === "Férias") return "Férias";
+  return value === "Inativo" ? "Inativo" : "Ativo";
+}
+
+function normalizePhotoCategory(value: unknown): PhotoCategory {
+  if (value === "Depois" || value === "Durante") return value;
+  if (value === "Evolucao" || value === "Evolução") return "Evolução";
+  return "Antes";
+}
+
+function normalizeBodyArea(value: unknown): BodyArea {
+  if (value === "Rosto" || value === "Costas" || value === "Barriga" || value === "Pernas" || value === "Geral") return value;
+  if (value === "Gluteos" || value === "Glúteos") return "Glúteos";
+  if (value === "Bracos" || value === "Braços") return "Braços";
+  return "Geral";
+}
+
+function normalizePaymentMethod(value: unknown) {
+  if (value === "Cartao" || value === "Cartao de credito" || value === "Cartão de crédito") return "Cartão de crédito";
+  if (value === "Cartao de debito" || value === "Cartão de débito") return "Cartão de débito";
+  return typeof value === "string" ? value : "";
+}
+
+function normalizeProfessional(raw: Professional): Professional {
+  return {
+    ...raw,
+    role: normalizeRoleName(raw.role),
+    status: normalizeProfessionalStatus(raw.status)
+  };
+}
+
 function normalizePatient(raw: Partial<Patient> & { name?: string }): Patient {
   const fallbackStamp = toIsoStamp();
 
@@ -70,7 +109,8 @@ function normalizeProcedure(raw: ProcedureRecord): ProcedureRecord {
     photos: Array.isArray(raw.photos)
       ? raw.photos.map((photo) => ({
           ...photo,
-          area: photo.area ?? "Geral"
+          category: normalizePhotoCategory(photo.category),
+          area: normalizeBodyArea(photo.area)
         }))
       : []
   };
@@ -111,7 +151,7 @@ function normalizeAppointmentStatus(rawStatus: unknown): AppointmentStatus {
 function normalizeAppointment(raw: Partial<Appointment>): Appointment {
   const legacyStatus = raw.status as string | undefined;
   const isLegacyRescheduled = legacyStatus === "Remarcado";
-  const paymentMethod = raw.paymentMethod === "Cartao" ? "Cartao de credito" : raw.paymentMethod ?? "";
+  const paymentMethod = normalizePaymentMethod(raw.paymentMethod);
 
   return {
     id: raw.id ?? createId("APT"),
@@ -140,7 +180,7 @@ function normalizeAppointment(raw: Partial<Appointment>): Appointment {
 function normalizeFinancialEntry(raw: Partial<FinancialEntry>): FinancialEntry {
   const amount = raw.amount ?? 0;
   const paidAmount = raw.paidAmount ?? (raw.status === "Pago" ? amount : 0);
-  const paymentMethod = raw.paymentMethod === "Cartao" ? "Cartao de credito" : raw.paymentMethod ?? "";
+  const paymentMethod = normalizePaymentMethod(raw.paymentMethod);
 
   return {
     id: raw.id ?? createId("FIN"),
@@ -150,7 +190,7 @@ function normalizeFinancialEntry(raw: Partial<FinancialEntry>): FinancialEntry {
     patientId: raw.patientId,
     procedure: raw.procedure,
     productName: raw.productName,
-    description: raw.description ?? raw.procedure ?? raw.productName ?? "Lancamento financeiro",
+    description: raw.description ?? raw.procedure ?? raw.productName ?? "Lançamento financeiro",
     date: raw.date ?? raw.paymentDate ?? "",
     amount,
     paidAmount,
@@ -159,7 +199,7 @@ function normalizeFinancialEntry(raw: Partial<FinancialEntry>): FinancialEntry {
     paymentMethod,
     paymentDate: raw.paymentDate ?? "",
     installments: raw.installments,
-    source: raw.source ?? "Lancamento manual"
+    source: raw.source ?? "Lançamento manual"
   };
 }
 
@@ -169,7 +209,7 @@ function normalizeClinicData(raw: Partial<PersistedClinicData>): PersistedClinic
       ? raw.patients.map((patient) => normalizePatient(patient as Partial<Patient> & { name?: string }))
       : [],
     products: Array.isArray(raw.products) ? raw.products.map((product) => normalizeProduct(product)) : [],
-    professionals: Array.isArray(raw.professionals) ? raw.professionals : [],
+    professionals: Array.isArray(raw.professionals) ? raw.professionals.map((professional) => normalizeProfessional(professional)) : [],
     anamneses: Array.isArray(raw.anamneses) ? raw.anamneses : [],
     contracts: Array.isArray(raw.contracts) ? raw.contracts : [],
     procedures: Array.isArray(raw.procedures)
@@ -283,7 +323,7 @@ async function saveClinicData(data: PersistedClinicData) {
     body: JSON.stringify(data)
   });
 
-  if (!response.ok) throw new Error("Nao foi possivel salvar os dados.");
+  if (!response.ok) throw new Error("Não foi possível salvar os dados.");
   return normalizeClinicData((await response.json()) as PersistedClinicData);
 }
 
@@ -295,7 +335,7 @@ export function useClinicData() {
 
     fetch("/api/clinic", { cache: "no-store" })
       .then((response) => {
-        if (!response.ok) throw new Error("Nao foi possivel carregar os dados.");
+        if (!response.ok) throw new Error("Não foi possível carregar os dados.");
         return response.json() as Promise<PersistedClinicData>;
       })
       .then((payload) => {
@@ -552,7 +592,7 @@ export function useClinicData() {
               paymentMethod: input.paymentMethod,
               paymentDate: input.paymentDate,
               paidAmount: input.status === "Pago" ? appointment.price : input.paidAmount,
-              installments: input.paymentMethod === "Cartao de credito" ? input.installments : undefined
+              installments: input.paymentMethod === "Cartão de crédito" ? input.installments : undefined
             };
           }),
           financialEntries: current.financialEntries.map((item) =>
@@ -562,7 +602,7 @@ export function useClinicData() {
                   ...input,
                   paidAmount: input.status === "Pago" ? item.amount : input.paidAmount,
                   balanceAmount: input.status === "Pago" ? 0 : Math.max(item.amount - input.paidAmount, 0),
-                  installments: input.paymentMethod === "Cartao de credito" ? input.installments : undefined
+                  installments: input.paymentMethod === "Cartão de crédito" ? input.installments : undefined
                 }
               : item
           )
