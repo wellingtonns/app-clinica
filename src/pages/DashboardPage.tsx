@@ -1,5 +1,5 @@
-import { Link } from "react-router-dom";
-import { Appointment, FinancialEntry, Patient, Professional } from "../types";
+import { Appointment, AppointmentStatus, FinancialEntry, Patient, Professional } from "../types";
+import { formatCurrency, formatDate } from "../utils/format";
 
 type Props = {
   patients: Patient[];
@@ -8,69 +8,118 @@ type Props = {
   financialEntries: FinancialEntry[];
 };
 
-const indicators = [
-  { label: "Agendamentos hoje", value: "12", detail: "4 confirmados para a tarde", icon: "A" },
-  { label: "Clientes ativas", value: "235", detail: "Base em acompanhamento", icon: "C" },
-  { label: "Faturamento do mes", value: "R$ 28.450,00", detail: "Meta mensal em 78%", icon: "F" },
-  { label: "Procedimentos realizados", value: "87", detail: "No ciclo atual", icon: "P" },
-];
+const statusLabels: AppointmentStatus[] = ["Agendado", "Confirmado", "Desmarcado", "Realizado", "Cancelado"];
 
-const todaysSchedule = [
-  { time: "09:00", client: "Juliana Silva", procedure: "Limpeza de pele", status: "Confirmado" },
-  { time: "10:30", client: "Camila Santos", procedure: "Hidratacao facial", status: "Confirmado" },
-  { time: "13:30", client: "Larissa Oliveira", procedure: "Massagem modeladora", status: "Pendente" },
-  { time: "15:00", client: "Beatriz Lima", procedure: "Depilacao a laser", status: "Confirmado" },
-  { time: "16:30", client: "Amanda Costa", procedure: "Peeling quimico", status: "Pendente" },
-];
-
-const upcomingAppointments = [
-  {
-    date: "12/06",
-    client: "Mariana Rocha",
-    procedure: "Botox preventivo",
-    time: "09:30",
-    status: "Confirmado",
-  },
-  {
-    date: "13/06",
-    client: "Renata Alves",
-    procedure: "Drenagem linfatica",
-    time: "11:00",
-    status: "Pendente",
-  },
-  {
-    date: "14/06",
-    client: "Fernanda Martins",
-    procedure: "Design de sobrancelhas",
-    time: "14:00",
-    status: "Confirmado",
-  },
-  {
-    date: "15/06",
-    client: "Patricia Gomes",
-    procedure: "Radiofrequencia",
-    time: "16:00",
-    status: "Confirmado",
-  },
-];
-
-const extraCards = [
-  { label: "Clientes em atraso", value: "8", detail: "Precisam de contato", tone: "soft-danger" },
-  { label: "Aniversariantes do mes", value: "19", detail: "Campanha pronta para envio", tone: "soft-primary" },
-  { label: "Avaliacoes recebidas", value: "4,9", detail: "Media dos ultimos 30 dias", tone: "soft-success" },
-  { label: "Recebimentos hoje", value: "R$ 3.280,00", detail: "Entradas confirmadas", tone: "soft-warning" },
-];
-
-function getStatusClass(status: string) {
-  return status === "Confirmado" ? "status-pill status-confirmed" : "status-pill status-pending";
+function toLocalIsoDate(date = new Date()) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
-export function DashboardPage({ patients, professionals, appointments, financialEntries }: Props) {
-  const platformSnapshot = [
-    `${patients.length} clientes cadastradas`,
-    `${professionals.length} profissionais na equipe`,
-    `${appointments.length} registros de agenda`,
-    `${financialEntries.length} lancamentos financeiros`,
+function addDays(date: Date, amount: number) {
+  const nextDate = new Date(date);
+  nextDate.setDate(date.getDate() + amount);
+  return nextDate;
+}
+
+function getAppointmentStamp(appointment: Appointment) {
+  return `${appointment.date}T${appointment.time || "00:00"}`;
+}
+
+function sortAppointments(left: Appointment, right: Appointment) {
+  return getAppointmentStamp(left).localeCompare(getAppointmentStamp(right));
+}
+
+function countByStatus(appointments: Appointment[]) {
+  return statusLabels.reduce<Record<AppointmentStatus, number>>(
+    (accumulator, status) => ({
+      ...accumulator,
+      [status]: appointments.filter((appointment) => appointment.status === status).length
+    }),
+    {
+      Agendado: 0,
+      Confirmado: 0,
+      Desmarcado: 0,
+      Realizado: 0,
+      Cancelado: 0
+    }
+  );
+}
+
+function getStatusClass(status: AppointmentStatus) {
+  return `appointment-status appointment-status-${status.toLowerCase()}`;
+}
+
+export function DashboardPage({ patients, professionals, appointments }: Props) {
+  const now = new Date();
+  const today = toLocalIsoDate(now);
+  const currentMonth = today.slice(0, 7);
+  const ninetyDaysAgo = toLocalIsoDate(addDays(now, -90));
+
+  const patientNameById = new Map(patients.map((patient) => [patient.id, patient.fullName]));
+  const professionalNameById = new Map(professionals.map((professional) => [professional.id, professional.name]));
+
+  const todaysAppointments = appointments.filter((appointment) => appointment.date === today).sort(sortAppointments);
+  const todayStatusCounts = countByStatus(todaysAppointments);
+
+  const recentPatientIds = new Set(
+    appointments
+      .filter(
+        (appointment) =>
+          appointment.date >= ninetyDaysAgo &&
+          appointment.date <= today &&
+          appointment.status !== "Cancelado" &&
+          appointment.status !== "Desmarcado"
+      )
+      .map((appointment) => appointment.patientId)
+  );
+
+  const completedThisMonth = appointments.filter(
+    (appointment) => appointment.status === "Realizado" && appointment.date.startsWith(currentMonth)
+  );
+  const monthlyRevenue = completedThisMonth.reduce((total, appointment) => total + appointment.price, 0);
+
+  const futureAppointments = appointments
+    .filter((appointment) => getAppointmentStamp(appointment) >= `${today}T${now.toTimeString().slice(0, 5)}`)
+    .filter((appointment) => appointment.status !== "Cancelado" && appointment.status !== "Desmarcado")
+    .sort(sortAppointments);
+
+  const agendaAppointments = [...todaysAppointments, ...futureAppointments.filter((appointment) => appointment.date !== today)]
+    .sort(sortAppointments)
+    .slice(0, 12);
+
+  const indicators = [
+    {
+      label: "Agendamentos hoje",
+      value: String(todaysAppointments.length),
+      detail:
+        todaysAppointments.length > 0
+          ? `${todayStatusCounts.Confirmado} confirmados | ${todayStatusCounts.Agendado} aguardando confirmacao | ${todayStatusCounts.Realizado} realizados`
+          : "Nao ha agendamentos para hoje",
+      icon: "A"
+    },
+    {
+      label: "Clientes ativos",
+      value: String(patients.length),
+      detail: `${recentPatientIds.size} pacientes com movimentacao recente`,
+      icon: "C"
+    },
+    {
+      label: "Faturamento do mes",
+      value: monthlyRevenue > 0 ? formatCurrency(monthlyRevenue) : formatCurrency(0),
+      detail:
+        completedThisMonth.length > 0
+          ? `${completedThisMonth.length} procedimentos concluidos no mes`
+          : "Sem faturamento no periodo",
+      icon: "F"
+    },
+    {
+      label: "Procedimentos realizados",
+      value: String(completedThisMonth.length),
+      detail: completedThisMonth.length > 0 ? "No mes atual" : "Nenhum procedimento realizado",
+      icon: "P"
+    }
   ];
 
   return (
@@ -91,22 +140,6 @@ export function DashboardPage({ patients, professionals, appointments, financial
         </div>
       </header>
 
-      <section className="beauty-hero">
-        <div className="beauty-hero-copy">
-          <p className="eyebrow">Belleza Estetica</p>
-          <h1>Gestao completa para sua clinica de estetica</h1>
-          <p>Organize, encante e fidelize suas clientes.</p>
-          <Link className="primary-button hero-action" to="/agenda">
-            Ver agendamentos de hoje
-          </Link>
-        </div>
-        <div className="hero-stats">
-          {platformSnapshot.map((item) => (
-            <span key={item}>{item}</span>
-          ))}
-        </div>
-      </section>
-
       <section className="metric-grid beauty-metrics" aria-label="Indicadores principais">
         {indicators.map((indicator) => (
           <article className="metric-card beauty-metric-card" key={indicator.label}>
@@ -118,73 +151,54 @@ export function DashboardPage({ patients, professionals, appointments, financial
         ))}
       </section>
 
-      <section className="section dashboard-main-grid">
+      <section className="section">
         <article className="panel beauty-panel">
           <div className="panel-header">
             <div>
-              <h4>Agenda de hoje</h4>
-              <p>Horarios, clientes, procedimentos e status do dia.</p>
+              <h4>Agenda</h4>
+              <p>Agendamentos de hoje e proximos atendimentos futuros, ordenados por data e horario.</p>
             </div>
           </div>
-          <div className="table-wrap">
-            <table className="beauty-table">
-              <thead>
-                <tr>
-                  <th>Horario</th>
-                  <th>Cliente</th>
-                  <th>Procedimento</th>
-                  <th>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {todaysSchedule.map((appointment) => (
-                  <tr key={`${appointment.time}-${appointment.client}`}>
-                    <td>{appointment.time}</td>
-                    <td>{appointment.client}</td>
-                    <td>{appointment.procedure}</td>
-                    <td>
-                      <span className={getStatusClass(appointment.status)}>{appointment.status}</span>
-                    </td>
+          {agendaAppointments.length > 0 ? (
+            <div className="table-wrap">
+              <table className="beauty-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Horario</th>
+                    <th>Cliente</th>
+                    <th>Procedimento</th>
+                    <th>Profissional</th>
+                    <th>Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </article>
-
-        <article className="panel beauty-panel">
-          <div className="panel-header">
-            <div>
-              <h4>Proximos agendamentos</h4>
-              <p>Compromissos ja mapeados para os proximos dias.</p>
+                </thead>
+                <tbody>
+                  {agendaAppointments.map((appointment) => (
+                    <tr key={appointment.id}>
+                      <td>{appointment.date === today ? "Hoje" : formatDate(appointment.date)}</td>
+                      <td>{appointment.time}</td>
+                      <td>{patientNameById.get(appointment.patientId) ?? appointment.patientId}</td>
+                      <td>{appointment.procedure}</td>
+                      <td>{professionalNameById.get(appointment.professionalId) ?? appointment.professionalId}</td>
+                      <td>
+                        <div className="status-badge-group">
+                          {appointment.isRescheduled ? (
+                            <span className="appointment-status appointment-status-remarcado">Remarcado</span>
+                          ) : null}
+                          <span className={getStatusClass(appointment.status)}>{appointment.status}</span>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          </div>
-          <div className="appointment-list">
-            {upcomingAppointments.map((appointment) => (
-              <div className="appointment-card" key={`${appointment.date}-${appointment.client}`}>
-                <div className="date-badge">
-                  <strong>{appointment.date}</strong>
-                  <span>{appointment.time}</span>
-                </div>
-                <div>
-                  <strong>{appointment.client}</strong>
-                  <span>{appointment.procedure}</span>
-                </div>
-                <span className={getStatusClass(appointment.status)}>{appointment.status}</span>
-              </div>
-            ))}
-          </div>
+          ) : (
+            <div className="empty-state">
+              {todaysAppointments.length === 0 ? "Nao ha agendamentos para hoje" : "Nenhum atendimento futuro"}
+            </div>
+          )}
         </article>
-      </section>
-
-      <section className="section extra-card-grid">
-        {extraCards.map((card) => (
-          <article className={`panel extra-card ${card.tone}`} key={card.label}>
-            <span>{card.label}</span>
-            <strong>{card.value}</strong>
-            <p>{card.detail}</p>
-          </article>
-        ))}
       </section>
     </div>
   );

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { CrudPanel } from "../components/CrudPanel";
-import { PageHeader } from "../components/PageHeader";
+import { PageTopbar } from "../components/PageTopbar";
 import { PatientModal } from "../components/PatientModal";
 import {
   AnamnesisRecord,
@@ -100,11 +100,21 @@ export function PatientsPage({
 
   return (
     <>
-      <PageHeader
-        eyebrow="Pacientes"
-        title="Lista principal com cadastro rapido via modal em abas."
-        description="Busca, filtros, ordenacao e acoes por paciente agora acontecem em uma unica tela operacional, mantendo o padrao visual da plataforma."
-        badge={`${patients.length} pacientes`}
+      <PageTopbar
+        title="Clientes"
+        subtitle="Cadastro e gerenciamento de pacientes."
+        action={
+          <button
+            className="primary-button prominent-button"
+            type="button"
+            onClick={() => {
+              setModalMode("create");
+              setSelectedPatientId("new");
+            }}
+          >
+            Novo cliente
+          </button>
+        }
       />
 
       <section className="section">
@@ -145,16 +155,6 @@ export function PatientsPage({
                 </select>
               </label>
             </div>
-            <button
-              className="primary-button prominent-button"
-              type="button"
-              onClick={() => {
-                setModalMode("create");
-                setSelectedPatientId("new");
-              }}
-            >
-              + Adicionar Paciente
-            </button>
           </div>
 
           <div className="table-wrap">

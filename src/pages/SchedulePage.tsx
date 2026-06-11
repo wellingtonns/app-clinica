@@ -1,7 +1,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { CrudPanel } from "../components/CrudPanel";
-import { PageHeader } from "../components/PageHeader";
-import { Appointment, AppointmentStatus, Patient, Professional } from "../types";
+import { PageTopbar } from "../components/PageTopbar";
+import { Appointment, AppointmentStatus, FinancialStatus, Patient, Professional } from "../types";
 import { formatCurrency, formatDate, getWeekRange } from "../utils/format";
 
 type Props = {
@@ -16,6 +16,8 @@ type Props = {
 type ViewMode = "Diaria" | "Semanal";
 
 const statusOptions: AppointmentStatus[] = ["Agendado", "Confirmado", "Desmarcado", "Realizado", "Cancelado"];
+const paymentStatusOptions: FinancialStatus[] = ["Pendente", "Pago", "Parcial", "Cancelado"];
+const paymentMethodOptions = ["Pix", "Cartao de debito", "Cartao de credito", "Dinheiro"];
 const currentUserName = "Administradora";
 const blockingStatuses: AppointmentStatus[] = ["Agendado", "Confirmado", "Realizado"];
 const businessStartMinutes = 8 * 60;
@@ -30,6 +32,11 @@ const emptyForm: Omit<Appointment, "id"> = {
   time: "",
   durationMinutes: 60,
   status: "Agendado",
+  paymentStatus: "Pendente",
+  paymentMethod: "",
+  paymentDate: "",
+  paidAmount: 0,
+  installments: undefined,
   notes: "",
   price: 0
 };
@@ -290,6 +297,11 @@ export function SchedulePage({
       time: appointment.time,
       durationMinutes: appointment.durationMinutes,
       status: appointment.status,
+      paymentStatus: appointment.paymentStatus ?? "Pendente",
+      paymentMethod: appointment.paymentMethod ?? "",
+      paymentDate: appointment.paymentDate ?? "",
+      paidAmount: appointment.paidAmount ?? 0,
+      installments: appointment.installments,
       notes: appointment.notes,
       price: appointment.price,
       originalDate: appointment.originalDate,
@@ -314,6 +326,21 @@ export function SchedulePage({
     if (!form.time) return "Informe o horario do atendimento.";
     if (!form.durationMinutes || form.durationMinutes < 15) return "Informe uma duracao valida.";
     if (form.price < 0) return "Informe um valor valido.";
+    if (form.paymentStatus === "Pago" && form.paidAmount !== form.price) {
+      return "Para pagamento Pago, o valor pago deve ser igual ao valor do procedimento.";
+    }
+    if (form.paymentStatus === "Parcial" && (form.paidAmount === undefined || form.paidAmount <= 0 || form.paidAmount >= form.price)) {
+      return "Para pagamento Parcial, o valor pago deve ser maior que zero e menor que o valor do procedimento.";
+    }
+    if (form.paymentStatus === "Pendente" && (form.paidAmount ?? 0) !== 0) {
+      return "Para pagamento Pendente, o valor pago deve ser zero.";
+    }
+    if (form.paymentStatus === "Cancelado" && (form.paidAmount ?? 0) !== 0) {
+      return "Para pagamento Cancelado, o valor pago deve ser zero.";
+    }
+    if (form.paymentMethod === "Cartao de credito" && !form.installments) {
+      return "Informe a quantidade de parcelas para pagamento no cartao de credito.";
+    }
     return null;
   };
 
@@ -365,6 +392,11 @@ export function SchedulePage({
         ...form,
         procedure: form.procedure.trim(),
         notes: form.notes.trim(),
+        paymentStatus: form.paymentStatus ?? "Pendente",
+        paymentMethod: form.paymentMethod === "Cartao de credito" ? form.paymentMethod : form.paymentMethod,
+        paymentDate: form.paymentDate,
+        paidAmount: form.paymentStatus === "Pago" ? form.price : form.paymentStatus === "Parcial" ? form.paidAmount ?? 0 : 0,
+        installments: form.paymentMethod === "Cartao de credito" ? form.installments : undefined,
         originalDate: isRescheduled ? currentAppointment?.originalDate ?? currentAppointment?.date ?? form.originalDate : undefined,
         originalTime: isRescheduled ? currentAppointment?.originalTime ?? currentAppointment?.time ?? form.originalTime : undefined,
         rescheduleReason: isRescheduled ? form.rescheduleReason?.trim() : undefined,
@@ -416,11 +448,14 @@ export function SchedulePage({
 
   return (
     <>
-      <PageHeader
-        eyebrow="Agenda"
-        title="Marcacao de horarios integrada ao financeiro."
-        description="Atendimentos realizados geram receita automaticamente no modulo financeiro, mantendo o fluxo da operacao centralizado."
-        badge={`${appointments.length} agendamentos`}
+      <PageTopbar
+        title="Agendamentos"
+        subtitle="Controle da agenda da clinica"
+        action={
+          <button className="primary-button prominent-button" type="button" onClick={openCreateModal}>
+            Novo agendamento
+          </button>
+        }
       />
 
       <section className="section">
@@ -448,9 +483,6 @@ export function SchedulePage({
                 <input type="date" value={referenceDate} onChange={(event) => setReferenceDate(event.target.value)} />
               </label>
             </div>
-            <button className="primary-button prominent-button" type="button" onClick={openCreateModal}>
-              Novo agendamento
-            </button>
           </div>
 
           {feedback ? <div className={`feedback-message feedback-${feedback.type}`}>{feedback.message}</div> : null}
@@ -459,10 +491,8 @@ export function SchedulePage({
             <table>
               <thead>
                 <tr>
-                  <th>Data original</th>
-                  <th>Horario original</th>
-                  <th>Nova data</th>
-                  <th>Novo horario</th>
+                  <th>Data</th>
+                  <th>Horario</th>
                   <th>Paciente</th>
                   <th>Profissional</th>
                   <th>Procedimento</th>
@@ -474,20 +504,6 @@ export function SchedulePage({
               <tbody>
                 {visibleAppointments.map((appointment) => (
                   <tr className={getAppointmentRowClass(appointment)} key={appointment.id}>
-                    <td>
-                      {appointment.isRescheduled && appointment.originalDate ? (
-                        <span className="original-slot">{formatDate(appointment.originalDate)}</span>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
-                    <td>
-                      {appointment.isRescheduled && appointment.originalTime ? (
-                        <span className="original-slot">{appointment.originalTime}</span>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
                     <td>{formatDate(appointment.date)}</td>
                     <td>{appointment.time}</td>
                     <td>{patientNameById.get(appointment.patientId) ?? appointment.patientId}</td>
@@ -518,7 +534,7 @@ export function SchedulePage({
                 ))}
                 {visibleAppointments.length === 0 ? (
                   <tr>
-                    <td colSpan={10}>
+                    <td colSpan={8}>
                       <div className="empty-state">Nenhum agendamento encontrado para o periodo selecionado.</div>
                     </td>
                   </tr>
@@ -603,10 +619,102 @@ export function SchedulePage({
                     min="0"
                     step="0.01"
                     value={form.price}
-                    onChange={(event) => setForm({ ...form, price: Number(event.target.value) })}
+                    onChange={(event) => {
+                      const nextPrice = Number(event.target.value);
+                      setForm({
+                        ...form,
+                        price: nextPrice,
+                        paidAmount: form.paymentStatus === "Pago" ? nextPrice : form.paidAmount
+                      });
+                    }}
                   />
                 </label>
               </div>
+
+              <section className="schedule-picker">
+                <div className="schedule-picker-header">
+                  <div>
+                    <h4>Pagamento</h4>
+                    <p>Dados usados automaticamente no modulo financeiro.</p>
+                  </div>
+                </div>
+                <div className="form-grid form-grid-2">
+                  <label>
+                    <span>Status do pagamento</span>
+                    <select
+                      value={form.paymentStatus ?? "Pendente"}
+                      onChange={(event) => {
+                        const nextStatus = event.target.value as FinancialStatus;
+                        setForm({
+                          ...form,
+                          paymentStatus: nextStatus,
+                          paidAmount: nextStatus === "Pago" ? form.price : nextStatus === "Parcial" ? form.paidAmount : 0
+                        });
+                      }}
+                    >
+                      {paymentStatusOptions.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Forma de pagamento</span>
+                    <select
+                      value={form.paymentMethod ?? ""}
+                      onChange={(event) =>
+                        setForm({
+                          ...form,
+                          paymentMethod: event.target.value,
+                          installments: event.target.value === "Cartao de credito" ? form.installments ?? 1 : undefined
+                        })
+                      }
+                    >
+                      <option value="">Selecione</option>
+                      {paymentMethodOptions.map((method) => (
+                        <option key={method} value={method}>
+                          {method}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Valor pago</span>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={form.paidAmount ?? 0}
+                      onChange={(event) => setForm({ ...form, paidAmount: Number(event.target.value) })}
+                    />
+                  </label>
+                  <label>
+                    <span>Data do pagamento</span>
+                    <input
+                      type="date"
+                      value={form.paymentDate ?? ""}
+                      onChange={(event) => setForm({ ...form, paymentDate: event.target.value })}
+                    />
+                  </label>
+                  {form.paymentMethod === "Cartao de credito" ? (
+                    <label>
+                      <span>Quantidade de parcelas</span>
+                      <select
+                        value={form.installments ?? ""}
+                        onChange={(event) => setForm({ ...form, installments: Number(event.target.value) })}
+                      >
+                        <option value="">Selecione</option>
+                        {Array.from({ length: 12 }, (_, index) => index + 1).map((installment) => (
+                          <option key={installment} value={installment}>
+                            {installment}x
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                </div>
+              </section>
 
               <section className="schedule-picker">
                 <div className="schedule-picker-header">

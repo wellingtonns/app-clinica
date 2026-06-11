@@ -1,6 +1,7 @@
 export type RoleName = "Administrador" | "Recepcao" | "Profissional";
 export type AppointmentStatus = "Agendado" | "Confirmado" | "Desmarcado" | "Realizado" | "Cancelado";
-export type FinancialStatus = "Pago" | "Pendente";
+export type FinancialStatus = "Pago" | "Pendente" | "Parcial" | "Cancelado";
+export type FinancialEntryType = "Receita" | "Despesa";
 export type PatientStatus = "Ativo" | "Inativo";
 export type PhotoCategory = "Antes" | "Depois" | "Durante" | "Evolucao";
 export type BodyArea = "Geral" | "Rosto" | "Costas" | "Barriga" | "Gluteos" | "Pernas" | "Bracos";
@@ -54,6 +55,8 @@ export interface Product {
   stock: number;
   minimumStock: number;
   unit: string;
+  unitCost: number;
+  purchaseDate: string;
   supplier: string;
   description: string;
 }
@@ -150,6 +153,11 @@ export interface Appointment {
   isRescheduled?: boolean;
   durationMinutes: number;
   status: AppointmentStatus;
+  paymentStatus?: FinancialStatus;
+  paymentMethod?: string;
+  paymentDate?: string;
+  paidAmount?: number;
+  installments?: number;
   notes: string;
   price: number;
   history?: AppointmentHistoryEntry[];
@@ -170,12 +178,21 @@ export interface AppointmentHistoryEntry {
 
 export interface FinancialEntry {
   id: string;
-  appointmentId: string;
-  patientId: string;
-  procedure: string;
+  type: FinancialEntryType;
+  appointmentId?: string;
+  productId?: string;
+  patientId?: string;
+  procedure?: string;
+  productName?: string;
+  description: string;
   date: string;
   amount: number;
+  paidAmount: number;
+  balanceAmount: number;
   status: FinancialStatus;
+  paymentMethod: string;
+  paymentDate: string;
+  installments?: number;
   source: string;
 }
 

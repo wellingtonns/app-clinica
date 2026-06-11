@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 210" role="img" aria-labelledby="title desc">
+  <title id="title">SoftStetic</title>
+  <desc id="desc">Logo SoftStetic Gestao para clinicas</desc>
+  <defs>
+    <linearGradient id="iconBg" x1="23" y1="22" x2="177" y2="182" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff8fbd"/>
+      <stop offset="0.48" stop-color="#e73586"/>
+      <stop offset="1" stop-color="#9d145b"/>
+    </linearGradient>
+    <linearGradient id="wordPink" x1="444" y1="64" x2="720" y2="123" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e33686"/>
+      <stop offset="1" stop-color="#b81762"/>
+    </linearGradient>
+    <linearGradient id="leafFill" x1="35" y1="132" x2="90" y2="176" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#fff9fb"/>
+      <stop offset="1" stop-color="#ffd1e3"/>
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="150%">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#7f2f55" flood-opacity="0.20"/>
+    </filter>
+    <filter id="letterShadow" x="-15%" y="-20%" width="130%" height="150%">
+      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#6f153d" flood-opacity="0.26"/>
+    </filter>
+  </defs>
+  <rect width="760" height="210" rx="28" fill="none"/>
+  <g filter="url(#softShadow)">
+    <rect x="26" y="28" width="154" height="154" rx="37" fill="url(#iconBg)"/>
+    <path d="M45 148c19 15 46 19 66 9" fill="none" stroke="#fff5f8" stroke-width="8" stroke-linecap="round"/>
+    <path d="M58 143c-6-22-2-40 10-53 18 13 26 31 18 52-8-10-18-18-29-25 9 12 16 23 20 35-7-1-13-4-19-9Z" fill="url(#leafFill)"/>
+    <path d="M84 152c-4-19 2-34 17-44 11 14 12 31 1 46-4-10-9-18-17-25 5 10 7 18 7 25-3 0-6-1-8-2Z" fill="url(#leafFill)"/>
+    <text x="104" y="129" text-anchor="middle" filter="url(#letterShadow)" font-family="Georgia, 'Times New Roman', serif" font-size="106" font-weight="700" fill="#fff">SS</text>
+  </g>
+  <g>
+    <text x="220" y="124" font-family="'Segoe UI', Arial, sans-serif" font-size="76" font-weight="300" letter-spacing="-3" fill="#202634">Soft</text>
+    <text x="412" y="124" font-family="'Segoe UI', Arial, sans-serif" font-size="76" font-weight="300" letter-spacing="-3" fill="url(#wordPink)">Stetic</text>
+    <line x1="220" y1="164" x2="280" y2="164" stroke="#d94b85" stroke-width="3"/>
+    <text x="302" y="172" font-family="'Segoe UI', Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="9" fill="#7d6877">GESTAO PARA CLINICAS</text>
+    <line x1="646" y1="164" x2="718" y2="164" stroke="#d94b85" stroke-width="3"/>
+  </g>
+</svg>

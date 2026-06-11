@@ -66,6 +66,25 @@ function normalizeProcedure(raw: ProcedureRecord): ProcedureRecord {
   };
 }
 
+function normalizeProduct(raw: Partial<Product>): Product {
+  return {
+    id: raw.id ?? createId("PRD"),
+    name: raw.name ?? "",
+    category: raw.category ?? "",
+    sku: raw.sku ?? "",
+    batch: raw.batch ?? "",
+    expiry: raw.expiry ?? "",
+    price: raw.price ?? raw.unitCost ?? 0,
+    stock: raw.stock ?? 0,
+    minimumStock: raw.minimumStock ?? 0,
+    unit: raw.unit ?? "",
+    unitCost: raw.unitCost ?? raw.price ?? 0,
+    purchaseDate: raw.purchaseDate ?? "",
+    supplier: raw.supplier ?? "",
+    description: raw.description ?? ""
+  };
+}
+
 function normalizeAppointmentStatus(rawStatus: unknown): AppointmentStatus {
   if (
     rawStatus === "Confirmado" ||
@@ -82,6 +101,7 @@ function normalizeAppointmentStatus(rawStatus: unknown): AppointmentStatus {
 function normalizeAppointment(raw: Partial<Appointment>): Appointment {
   const legacyStatus = raw.status as string | undefined;
   const isLegacyRescheduled = legacyStatus === "Remarcado";
+  const paymentMethod = raw.paymentMethod === "Cartao" ? "Cartao de credito" : raw.paymentMethod ?? "";
 
   return {
     id: raw.id ?? createId("APT"),
@@ -96,9 +116,40 @@ function normalizeAppointment(raw: Partial<Appointment>): Appointment {
     isRescheduled: raw.isRescheduled ?? isLegacyRescheduled,
     durationMinutes: raw.durationMinutes ?? 60,
     status: normalizeAppointmentStatus(raw.status),
+    paymentStatus: raw.paymentStatus ?? (raw.status === "Realizado" ? "Pendente" : "Pendente"),
+    paymentMethod,
+    paymentDate: raw.paymentDate ?? "",
+    paidAmount: raw.paidAmount ?? 0,
+    installments: raw.installments,
     notes: raw.notes ?? "",
     price: raw.price ?? 0,
     history: Array.isArray(raw.history) ? raw.history : []
+  };
+}
+
+function normalizeFinancialEntry(raw: Partial<FinancialEntry>): FinancialEntry {
+  const amount = raw.amount ?? 0;
+  const paidAmount = raw.paidAmount ?? (raw.status === "Pago" ? amount : 0);
+  const paymentMethod = raw.paymentMethod === "Cartao" ? "Cartao de credito" : raw.paymentMethod ?? "";
+
+  return {
+    id: raw.id ?? createId("FIN"),
+    type: raw.type ?? "Receita",
+    appointmentId: raw.appointmentId,
+    productId: raw.productId,
+    patientId: raw.patientId,
+    procedure: raw.procedure,
+    productName: raw.productName,
+    description: raw.description ?? raw.procedure ?? raw.productName ?? "Lancamento financeiro",
+    date: raw.date ?? raw.paymentDate ?? "",
+    amount,
+    paidAmount,
+    balanceAmount: raw.balanceAmount ?? Math.max(amount - paidAmount, 0),
+    status: raw.status ?? "Pendente",
+    paymentMethod,
+    paymentDate: raw.paymentDate ?? "",
+    installments: raw.installments,
+    source: raw.source ?? "Lancamento manual"
   };
 }
 
@@ -112,7 +163,9 @@ function parseStoredState(): PersistedClinicData {
       patients: Array.isArray(parsed.patients)
         ? parsed.patients.map((patient) => normalizePatient(patient as Partial<Patient> & { name?: string }))
         : initialClinicData.patients,
-      products: Array.isArray(parsed.products) ? parsed.products : initialClinicData.products,
+      products: Array.isArray(parsed.products)
+        ? parsed.products.map((product) => normalizeProduct(product as Partial<Product>))
+        : initialClinicData.products.map((product) => normalizeProduct(product)),
       professionals: Array.isArray(parsed.professionals) ? parsed.professionals : initialClinicData.professionals,
       anamneses: Array.isArray(parsed.anamneses) ? parsed.anamneses : initialClinicData.anamneses,
       contracts: Array.isArray(parsed.contracts) ? parsed.contracts : initialClinicData.contracts,
@@ -124,8 +177,8 @@ function parseStoredState(): PersistedClinicData {
         ? parsed.appointments.map((appointment) => normalizeAppointment(appointment as Partial<Appointment>))
         : initialClinicData.appointments.map((appointment) => normalizeAppointment(appointment)),
       financialEntries: Array.isArray(parsed.financialEntries)
-        ? parsed.financialEntries
-        : initialClinicData.financialEntries
+        ? parsed.financialEntries.map((entry) => normalizeFinancialEntry(entry as Partial<FinancialEntry>))
+        : initialClinicData.financialEntries.map((entry) => normalizeFinancialEntry(entry))
     };
   } catch {
     return initialClinicData;
@@ -135,28 +188,50 @@ function parseStoredState(): PersistedClinicData {
 function syncFinancialEntries(
   appointments: Appointment[],
   currentEntries: FinancialEntry[],
-  patients: Patient[]
+  patients: Patient[],
+  products: Product[]
 ): FinancialEntry[] {
   const patientIds = new Set(patients.map((item) => item.id));
+  const productIds = new Set(products.map((item) => item.id));
   const normalizedEntries = currentEntries.filter(
-    (entry) => patientIds.has(entry.patientId) && appointments.some((appointment) => appointment.id === entry.appointmentId)
+    (entry) =>
+      (entry.type === "Receita" &&
+        entry.patientId &&
+        patientIds.has(entry.patientId) &&
+        entry.appointmentId &&
+        appointments.some((appointment) => appointment.id === entry.appointmentId)) ||
+      (entry.type === "Despesa" && entry.productId && productIds.has(entry.productId))
   );
 
-  return appointments.reduce<FinancialEntry[]>((accumulator, appointment) => {
-    if (appointment.status !== "Realizado") {
-      return accumulator.filter((entry) => entry.appointmentId !== appointment.id);
+  const revenueEntries = appointments.reduce<FinancialEntry[]>((accumulator, appointment) => {
+    if (appointment.status === "Cancelado" || appointment.status === "Desmarcado") {
+      return accumulator.filter((entry) => entry.appointmentId !== appointment.id || entry.type !== "Receita");
     }
 
-    const existingEntry = accumulator.find((entry) => entry.appointmentId === appointment.id);
+    const existingEntry = accumulator.find((entry) => entry.type === "Receita" && entry.appointmentId === appointment.id);
+    const status = appointment.paymentStatus ?? existingEntry?.status ?? "Pendente";
+    const paidAmount =
+      status === "Pago"
+        ? appointment.price
+        : status === "Parcial"
+          ? appointment.paidAmount ?? existingEntry?.paidAmount ?? 0
+          : 0;
     const nextEntry: FinancialEntry = {
       id: existingEntry?.id ?? createId("FIN"),
+      type: "Receita",
       appointmentId: appointment.id,
       patientId: appointment.patientId,
       procedure: appointment.procedure,
-      date: appointment.date,
+      description: appointment.procedure,
+      date: appointment.paymentDate || appointment.date,
       amount: appointment.price,
-      status: existingEntry?.status ?? "Pendente",
-      source: "Procedimento realizado"
+      paidAmount,
+      balanceAmount: Math.max(appointment.price - paidAmount, 0),
+      status,
+      paymentMethod: appointment.paymentMethod ?? existingEntry?.paymentMethod ?? "",
+      paymentDate: appointment.paymentDate ?? existingEntry?.paymentDate ?? "",
+      installments: appointment.installments,
+      source: "Agendamento"
     };
 
     if (existingEntry) {
@@ -165,6 +240,32 @@ function syncFinancialEntries(
 
     return [...accumulator, nextEntry];
   }, normalizedEntries);
+
+  return products.reduce<FinancialEntry[]>((accumulator, product) => {
+    const amount = product.stock * product.unitCost;
+    const existingEntry = accumulator.find((entry) => entry.type === "Despesa" && entry.productId === product.id);
+    const nextEntry: FinancialEntry = {
+      id: existingEntry?.id ?? createId("EXP"),
+      type: "Despesa",
+      productId: product.id,
+      productName: product.name,
+      description: `Compra/estoque: ${product.name}`,
+      date: product.purchaseDate || new Date().toISOString().slice(0, 10),
+      amount,
+      paidAmount: amount,
+      balanceAmount: 0,
+      status: "Pago",
+      paymentMethod: "Estoque",
+      paymentDate: product.purchaseDate || "",
+      source: "Produtos"
+    };
+
+    if (existingEntry) {
+      return accumulator.map((entry) => (entry.id === existingEntry.id ? nextEntry : entry));
+    }
+
+    return [...accumulator, nextEntry];
+  }, revenueEntries);
 }
 
 export function useClinicData() {
@@ -172,7 +273,7 @@ export function useClinicData() {
     const parsed = parseStoredState();
     return {
       ...parsed,
-      financialEntries: syncFinancialEntries(parsed.appointments, parsed.financialEntries, parsed.patients)
+      financialEntries: syncFinancialEntries(parsed.appointments, parsed.financialEntries, parsed.patients, parsed.products)
     };
   });
 
@@ -185,7 +286,7 @@ export function useClinicData() {
       const next = updater(current);
       return {
         ...next,
-        financialEntries: syncFinancialEntries(next.appointments, next.financialEntries, next.patients)
+        financialEntries: syncFinancialEntries(next.appointments, next.financialEntries, next.patients, next.products)
       };
     });
   };
@@ -390,8 +491,53 @@ export function useClinicData() {
     updateFinancialStatus: (id: string, status: FinancialStatus) => {
       setPersistedData((current) => ({
         ...current,
+        appointments: current.appointments.map((appointment) => {
+          const entry = current.financialEntries.find((item) => item.id === id);
+          if (!entry?.appointmentId || appointment.id !== entry.appointmentId) return appointment;
+
+          return {
+            ...appointment,
+            paymentStatus: status,
+            paidAmount: status === "Pago" ? appointment.price : status === "Pendente" || status === "Cancelado" ? 0 : appointment.paidAmount,
+            paymentDate: status === "Pago" ? appointment.paymentDate || toIsoStamp().slice(0, 10) : appointment.paymentDate
+          };
+        }),
         financialEntries: current.financialEntries.map((item) => (item.id === id ? { ...item, status } : item))
       }));
+    },
+    updateFinancialEntry: (
+      id: string,
+      input: Pick<FinancialEntry, "status" | "paymentMethod" | "paymentDate" | "paidAmount" | "installments">
+    ) => {
+      setPersistedData((current) => {
+        const entry = current.financialEntries.find((item) => item.id === id);
+        return {
+          ...current,
+          appointments: current.appointments.map((appointment) => {
+            if (!entry?.appointmentId || appointment.id !== entry.appointmentId) return appointment;
+
+            return {
+              ...appointment,
+              paymentStatus: input.status,
+              paymentMethod: input.paymentMethod,
+              paymentDate: input.paymentDate,
+              paidAmount: input.status === "Pago" ? appointment.price : input.paidAmount,
+              installments: input.paymentMethod === "Cartao de credito" ? input.installments : undefined
+            };
+          }),
+          financialEntries: current.financialEntries.map((item) =>
+            item.id === id
+              ? {
+                  ...item,
+                  ...input,
+                  paidAmount: input.status === "Pago" ? item.amount : input.paidAmount,
+                  balanceAmount: input.status === "Pago" ? 0 : Math.max(item.amount - input.paidAmount, 0),
+                  installments: input.paymentMethod === "Cartao de credito" ? input.installments : undefined
+                }
+              : item
+          )
+        };
+      });
     }
   };
 }

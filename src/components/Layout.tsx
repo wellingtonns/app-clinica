@@ -10,16 +10,17 @@ function navClassName({ isActive }: { isActive: boolean }) {
 }
 
 export function Layout({ children }: Props) {
-  const secondaryItems = ["Procedimentos", "Relatorios", "Marketing", "Configuracoes"];
-
   return (
     <main className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">BE</div>
-          <div>
-            <p className="eyebrow">Belleza Estetica</p>
-            <h1>Gestao para clinicas premium</h1>
+          <img className="brand-icon" src="/softstetic-favicon.svg" alt="" aria-hidden="true" />
+          <div className="brand-copy">
+            <strong>
+              <span>Soft</span>
+              <span>Stetic</span>
+            </strong>
+            <small>Gestao para clinicas</small>
           </div>
         </div>
 
@@ -49,19 +50,7 @@ export function Layout({ children }: Props) {
             <span className="nav-icon">E</span>
             Equipe
           </NavLink>
-          {secondaryItems.map((item) => (
-            <span className="nav-link nav-link-disabled" key={item}>
-              <span className="nav-icon">{item.slice(0, 1)}</span>
-              {item}
-            </span>
-          ))}
         </nav>
-
-        <div className="highlight-card">
-          <span>Experiencia Belleza</span>
-          <strong>Organizacao, cuidado e encantamento em cada atendimento.</strong>
-          <p>Painel preparado para acompanhar agenda, clientes, financeiro e relacionamento.</p>
-        </div>
       </aside>
 
       <div className="content">{children}</div>
