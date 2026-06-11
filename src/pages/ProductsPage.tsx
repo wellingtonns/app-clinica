@@ -1,7 +1,8 @@
 import { FormEvent, useState } from "react";
 import { CrudPanel } from "../components/CrudPanel";
-import { PageHeader } from "../components/PageHeader";
+import { PageTopbar } from "../components/PageTopbar";
 import { Product } from "../types";
+import { formatCurrency, formatDate } from "../utils/format";
 
 type Props = {
   products: Product[];
@@ -20,6 +21,8 @@ const emptyForm: Omit<Product, "id"> = {
   stock: 0,
   minimumStock: 0,
   unit: "",
+  unitCost: 0,
+  purchaseDate: "",
   supplier: "",
   description: ""
 };
@@ -43,12 +46,7 @@ export function ProductsPage({ products, createProduct, updateProduct, deletePro
 
   return (
     <>
-      <PageHeader
-        eyebrow="Cadastro de produtos"
-        title="Estoque e catalogo em uma tela separada."
-        description="Gerencie produtos com SKU, lote, validade, preco, estoque atual e ponto minimo de reposicao."
-        badge={`${products.length} itens`}
-      />
+      <PageTopbar title="Produtos" subtitle="Controle de estoque e produtos." />
 
       <section className="section page-grid">
         <CrudPanel title={editingId ? "Editar produto" : "Novo produto"} subtitle="Controle de estoque">
@@ -63,32 +61,30 @@ export function ProductsPage({ products, createProduct, updateProduct, deletePro
                 <input value={form.category} onChange={(event) => setForm({ ...form, category: event.target.value })} required />
               </label>
               <label>
-                <span>SKU</span>
-                <input value={form.sku} onChange={(event) => setForm({ ...form, sku: event.target.value })} />
-              </label>
-              <label>
-                <span>Lote</span>
-                <input value={form.batch} onChange={(event) => setForm({ ...form, batch: event.target.value })} />
-              </label>
-              <label>
-                <span>Validade</span>
-                <input value={form.expiry} onChange={(event) => setForm({ ...form, expiry: event.target.value })} />
-              </label>
-              <label>
                 <span>Unidade</span>
                 <input value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })} />
               </label>
               <label>
-                <span>Preco</span>
-                <input type="number" min="0" step="0.01" value={form.price} onChange={(event) => setForm({ ...form, price: Number(event.target.value) })} />
-              </label>
-              <label>
-                <span>Estoque atual</span>
+                <span>Quantidade em estoque</span>
                 <input type="number" min="0" value={form.stock} onChange={(event) => setForm({ ...form, stock: Number(event.target.value) })} />
               </label>
               <label>
-                <span>Estoque minimo</span>
-                <input type="number" min="0" value={form.minimumStock} onChange={(event) => setForm({ ...form, minimumStock: Number(event.target.value) })} />
+                <span>Custo unitario</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.unitCost}
+                  onChange={(event) => setForm({ ...form, unitCost: Number(event.target.value), price: Number(event.target.value) })}
+                />
+              </label>
+              <label>
+                <span>Valor total em estoque</span>
+                <input value={formatCurrency(form.stock * form.unitCost)} readOnly />
+              </label>
+              <label>
+                <span>Data da compra</span>
+                <input type="date" value={form.purchaseDate} onChange={(event) => setForm({ ...form, purchaseDate: event.target.value })} />
               </label>
             </div>
             <label>
@@ -96,7 +92,7 @@ export function ProductsPage({ products, createProduct, updateProduct, deletePro
               <input value={form.supplier} onChange={(event) => setForm({ ...form, supplier: event.target.value })} />
             </label>
             <label>
-              <span>Descricao</span>
+              <span>Observacoes</span>
               <textarea value={form.description} onChange={(event) => setForm({ ...form, description: event.target.value })} rows={3} />
             </label>
             <div className="form-actions">
@@ -118,7 +114,9 @@ export function ProductsPage({ products, createProduct, updateProduct, deletePro
                   <th>Produto</th>
                   <th>Categoria</th>
                   <th>Estoque</th>
-                  <th>Lote/validade</th>
+                  <th>Custo unitario</th>
+                  <th>Total em estoque</th>
+                  <th>Compra</th>
                   <th>Acoes</th>
                 </tr>
               </thead>
@@ -132,11 +130,12 @@ export function ProductsPage({ products, createProduct, updateProduct, deletePro
                     <td>{product.category}</td>
                     <td>
                       {product.stock} {product.unit}
-                      <div className="table-subtitle">Min. {product.minimumStock}</div>
                     </td>
+                    <td>{formatCurrency(product.unitCost)}</td>
+                    <td>{formatCurrency(product.stock * product.unitCost)}</td>
                     <td>
-                      {product.batch || "-"}
-                      <div className="table-subtitle">{product.expiry || "-"}</div>
+                      {product.purchaseDate ? formatDate(product.purchaseDate) : "-"}
+                      <div className="table-subtitle">{product.description || "-"}</div>
                     </td>
                     <td>
                       <div className="row-actions">

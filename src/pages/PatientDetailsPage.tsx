@@ -1,7 +1,7 @@
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
 import { CrudPanel } from "../components/CrudPanel";
-import { PageHeader } from "../components/PageHeader";
+import { PageTopbar } from "../components/PageTopbar";
 import {
   AnamnesisRecord,
   ContractRecord,
@@ -329,18 +329,18 @@ export function PatientDetailsPage({
 
   return (
     <>
-      <PageHeader
-        eyebrow="Central do Paciente"
+      <PageTopbar
         title={patient.fullName}
-        description="Resumo, anamnese, contrato, procedimentos, fotos e arquivos organizados por paciente para consulta futura."
-        badge={patient.status}
+        subtitle="Central do paciente."
+        action={
+          <Link className="inline-button link-button" to="/pacientes">
+            Voltar para clientes
+          </Link>
+        }
       />
 
       <section className="section">
         <div className="detail-topbar">
-          <Link className="inline-button link-button" to="/pacientes">
-            Voltar para pacientes
-          </Link>
           <div className="patient-quick-info">
             <span>{patient.phone}</span>
             <span>{patient.email || "Sem e-mail"}</span>

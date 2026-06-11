@@ -76,6 +76,8 @@ export const initialProducts: Product[] = [
     stock: 5,
     minimumStock: 8,
     unit: "frascos",
+    unitCost: 890,
+    purchaseDate: "2026-02-20",
     supplier: "Pharma Clinic",
     description: "Uso em protocolos faciais premium."
   },
@@ -90,6 +92,8 @@ export const initialProducts: Product[] = [
     stock: 18,
     minimumStock: 10,
     unit: "seringas",
+    unitCost: 420,
+    purchaseDate: "2026-02-20",
     supplier: "Derm Supply",
     description: "Produto de alta rotacao para harmonizacao."
   }
@@ -271,6 +275,11 @@ export const initialAppointments: Appointment[] = [
     time: "09:00",
     durationMinutes: 60,
     status: "Realizado",
+    paymentStatus: "Pago",
+    paymentMethod: "Cartao",
+    paymentDate: "2026-02-28",
+    paidAmount: 4800,
+    installments: 1,
     notes: "Procedimento concluido sem intercorrencias.",
     price: 4800
   },
@@ -283,6 +292,11 @@ export const initialAppointments: Appointment[] = [
     time: "10:30",
     durationMinutes: 50,
     status: "Agendado",
+    paymentStatus: "Pendente",
+    paymentMethod: "",
+    paymentDate: "",
+    paidAmount: 0,
+    installments: undefined,
     notes: "Confirmado por WhatsApp.",
     price: 420
   }
@@ -291,12 +305,19 @@ export const initialAppointments: Appointment[] = [
 export const initialFinancialEntries: FinancialEntry[] = [
   {
     id: "FIN-001",
+    type: "Receita",
     appointmentId: "APT-001",
     patientId: "PAT-001",
     procedure: "Botox full face",
+    description: "Procedimento realizado",
     date: "2026-02-28",
     amount: 4800,
+    paidAmount: 4800,
+    balanceAmount: 0,
     status: "Pago",
+    paymentMethod: "Cartao",
+    paymentDate: "2026-02-28",
+    installments: 1,
     source: "Procedimento realizado"
   }
 ];

@@ -1,6 +1,6 @@
 import { FormEvent, useState } from "react";
 import { CrudPanel } from "../components/CrudPanel";
-import { PageHeader } from "../components/PageHeader";
+import { PageTopbar } from "../components/PageTopbar";
 import { Professional, RoleName } from "../types";
 
 type Props = {
@@ -48,12 +48,7 @@ export function ProfessionalsPage({
 
   return (
     <>
-      <PageHeader
-        eyebrow="Cadastro de profissionais"
-        title="Controle de equipe com perfil, comissao e dados de contato."
-        description="Gerencie profissionais e recepcao em um modulo dedicado, com CRUD completo e base pronta para agenda individual."
-        badge={`${professionals.length} perfis`}
-      />
+      <PageTopbar title="Equipe" subtitle="Cadastro e gerenciamento da equipe." />
 
       <section className="section page-grid">
         <CrudPanel title={editingId ? "Editar profissional" : "Novo profissional"} subtitle="Equipe da clinica">

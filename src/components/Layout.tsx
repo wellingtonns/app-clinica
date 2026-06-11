@@ -14,40 +14,43 @@ export function Layout({ children }: Props) {
     <main className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <div className="brand-mark">CF</div>
-          <div>
-            <p className="eyebrow">ClinicFlow Pro</p>
-            <h1>Plataforma de gestao clinica</h1>
+          <img className="brand-icon" src="/softstetic-favicon.svg" alt="" aria-hidden="true" />
+          <div className="brand-copy">
+            <strong>
+              <span>Soft</span>
+              <span>Stetic</span>
+            </strong>
+            <small>Gestao para clinicas</small>
           </div>
         </div>
 
         <nav className="nav-card">
-          <span>Modulos</span>
+          <span>Menu principal</span>
           <NavLink to="/" end className={navClassName}>
+            <span className="nav-icon">D</span>
             Dashboard
           </NavLink>
-          <NavLink to="/pacientes" className={navClassName}>
-            Pacientes
-          </NavLink>
           <NavLink to="/agenda" className={navClassName}>
-            Agenda
+            <span className="nav-icon">A</span>
+            Agendamentos
+          </NavLink>
+          <NavLink to="/pacientes" className={navClassName}>
+            <span className="nav-icon">C</span>
+            Clientes
           </NavLink>
           <NavLink to="/financeiro" className={navClassName}>
+            <span className="nav-icon">F</span>
             Financeiro
           </NavLink>
           <NavLink to="/produtos" className={navClassName}>
+            <span className="nav-icon">P</span>
             Produtos
           </NavLink>
           <NavLink to="/profissionais" className={navClassName}>
-            Profissionais
+            <span className="nav-icon">E</span>
+            Equipe
           </NavLink>
         </nav>
-
-        <div className="highlight-card">
-          <span>Direcao do produto</span>
-          <strong>O paciente agora concentra historico, contrato, procedimentos, fotos e arquivos em uma unica central.</strong>
-          <p>A base visual foi mantida e o fluxo principal ficou organizado por paciente para consulta futura.</p>
-        </div>
       </aside>
 
       <div className="content">{children}</div>

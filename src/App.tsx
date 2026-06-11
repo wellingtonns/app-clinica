@@ -94,8 +94,12 @@ function App() {
             element={
               <FinancePage
                 patients={clinicData.patients}
+                appointments={clinicData.appointments}
+                professionals={clinicData.professionals}
+                products={clinicData.products}
                 financialEntries={clinicData.financialEntries}
                 updateFinancialStatus={clinicData.updateFinancialStatus}
+                updateFinancialEntry={clinicData.updateFinancialEntry}
               />
             }
           />
