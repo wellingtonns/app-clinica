@@ -1,6 +1,18 @@
 import { prisma } from "./_prisma.js";
 import { getSessionToken, verifySessionToken } from "./auth/_utils.js";
 
+const globalForClinicCache = globalThis;
+const clinicStateCacheTtlMs = 60 * 1000;
+
+const clinicStateCache =
+  globalForClinicCache.softSteticClinicStateCache ?? {
+    data: null,
+    expiresAt: 0,
+    promise: null
+  };
+
+globalForClinicCache.softSteticClinicStateCache = clinicStateCache;
+
 function json(res, status, payload, cacheControl = "no-store, max-age=0") {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json");
@@ -213,6 +225,30 @@ function stockMovementFromProduct(product) {
 }
 
 async function getClinicState() {
+  const now = Date.now();
+
+  if (clinicStateCache.data && clinicStateCache.expiresAt > now) {
+    return clinicStateCache.data;
+  }
+
+  if (clinicStateCache.promise) {
+    return clinicStateCache.promise;
+  }
+
+  clinicStateCache.promise = loadClinicStateFromDatabase()
+    .then((state) => {
+      clinicStateCache.data = state;
+      clinicStateCache.expiresAt = Date.now() + clinicStateCacheTtlMs;
+      return state;
+    })
+    .finally(() => {
+      clinicStateCache.promise = null;
+    });
+
+  return clinicStateCache.promise;
+}
+
+async function loadClinicStateFromDatabase() {
   const [
     patients,
     products,
@@ -249,6 +285,18 @@ async function getClinicState() {
     appointments,
     financialEntries
   };
+}
+
+function updateClinicStateCache(state) {
+  clinicStateCache.data = state;
+  clinicStateCache.expiresAt = Date.now() + clinicStateCacheTtlMs;
+  clinicStateCache.promise = null;
+}
+
+function clearClinicStateCache() {
+  clinicStateCache.data = null;
+  clinicStateCache.expiresAt = 0;
+  clinicStateCache.promise = null;
 }
 
 async function createMany(tx, model, data) {
@@ -366,12 +414,14 @@ export default async function handler(req, res) {
     if (req.method === "PUT") {
       const body = await readBody(req);
       await replaceClinicState(body);
+      updateClinicStateCache(body);
       return empty(res, 204);
     }
 
     res.setHeader("Allow", "GET, PUT");
     return json(res, 405, { error: "Método não permitido." });
   } catch (error) {
+    clearClinicStateCache();
     console.error(error);
     return json(res, 500, { error: "Não foi possível acessar os dados da clínica." });
   }

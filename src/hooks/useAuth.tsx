@@ -112,6 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           cache: "no-store"
         });
         sessionStorage.removeItem("softstetic:clinic-data:v1");
+        localStorage.removeItem("softstetic:clinic-data:persistent:v1");
         setUser(null);
       }
     }),

@@ -39,9 +39,16 @@ const emptyClinicData: PersistedClinicData = {
 };
 
 const clinicDataCacheKey = "softstetic:clinic-data:v1";
+const clinicDataPersistentCacheKey = "softstetic:clinic-data:persistent:v1";
+const clinicDataPersistentCacheMaxAgeMs = 1000 * 60 * 60 * 24;
 let clinicDataCache: PersistedClinicData | null = null;
 let clinicDataFetchPromise: Promise<PersistedClinicData> | null = null;
 let clinicDataVersion = 0;
+
+type CachedClinicDataEnvelope = {
+  savedAt: number;
+  data: Partial<PersistedClinicData>;
+};
 
 function createId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -336,13 +343,28 @@ function readCachedClinicData() {
   if (typeof window === "undefined") return null;
 
   try {
-    const cached = window.sessionStorage.getItem(clinicDataCacheKey);
-    if (!cached) return null;
-    clinicDataCache = withSyncedFinancialEntries(normalizeClinicData(JSON.parse(cached) as Partial<PersistedClinicData>));
+    const memoryCached = window.sessionStorage.getItem(clinicDataCacheKey);
+    if (memoryCached) {
+      clinicDataCache = withSyncedFinancialEntries(normalizeClinicData(JSON.parse(memoryCached) as Partial<PersistedClinicData>));
+      return clinicDataCache;
+    }
+
+    const persistentCached = window.localStorage.getItem(clinicDataPersistentCacheKey);
+    if (!persistentCached) return null;
+
+    const envelope = JSON.parse(persistentCached) as CachedClinicDataEnvelope;
+    if (!envelope.savedAt || Date.now() - envelope.savedAt > clinicDataPersistentCacheMaxAgeMs) {
+      window.localStorage.removeItem(clinicDataPersistentCacheKey);
+      return null;
+    }
+
+    clinicDataCache = withSyncedFinancialEntries(normalizeClinicData(envelope.data));
+    window.sessionStorage.setItem(clinicDataCacheKey, JSON.stringify(clinicDataCache));
     return clinicDataCache;
   } catch (error) {
     console.error(error);
     window.sessionStorage.removeItem(clinicDataCacheKey);
+    window.localStorage.removeItem(clinicDataPersistentCacheKey);
     return null;
   }
 }
@@ -354,6 +376,13 @@ function writeCachedClinicData(data: PersistedClinicData) {
   if (typeof window === "undefined") return;
   try {
     window.sessionStorage.setItem(clinicDataCacheKey, JSON.stringify(data));
+    window.localStorage.setItem(
+      clinicDataPersistentCacheKey,
+      JSON.stringify({
+        savedAt: Date.now(),
+        data
+      } satisfies CachedClinicDataEnvelope)
+    );
   } catch (error) {
     console.error(error);
   }
