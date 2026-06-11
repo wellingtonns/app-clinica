@@ -38,6 +38,10 @@ model Patient {
   procedures       ProcedureRecord[]
   patientFiles     PatientFileRecord[]
   financialEntries FinancialEntry[]
+
+  @@index([fullName])
+  @@index([status])
+  @@index([updatedAt])
 }
 
 model Professional {
@@ -54,6 +58,10 @@ model Professional {
 
   appointments Appointment[]
   procedures   ProcedureRecord[]
+
+  @@index([name])
+  @@index([specialty])
+  @@index([status])
 }
 
 model Appointment {
@@ -125,6 +133,10 @@ model FinancialEntry {
   patient     Patient?     @relation(fields: [patientId], references: [id], onDelete: Cascade)
 
   @@index([type, date])
+  @@index([date, description])
+  @@index([status, date])
+  @@index([paymentMethod])
+  @@index([patientId])
   @@index([appointmentId])
   @@index([productId])
 }
@@ -147,6 +159,10 @@ model Product {
 
   financialEntries FinancialEntry[]
   stockMovements   StockMovement[]
+
+  @@index([name])
+  @@index([category])
+  @@index([purchaseDate])
 }
 
 model StockMovement {
@@ -161,6 +177,8 @@ model StockMovement {
   createdAt   DateTime @default(now())
 
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, date])
 }
 
 model AnamnesisRecord {
@@ -183,6 +201,8 @@ model AnamnesisRecord {
   attachments              Json   @default("[]")
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, version])
 }
 
 model ContractRecord {
@@ -196,6 +216,8 @@ model ContractRecord {
   uploadedAt   String
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId, version])
 }
 
 model ProcedureRecord {
@@ -210,6 +232,10 @@ model ProcedureRecord {
 
   patient      Patient       @relation(fields: [patientId], references: [id], onDelete: Cascade)
   professional Professional? @relation(fields: [professionalId], references: [id], onDelete: SetNull)
+
+  @@index([date, name])
+  @@index([patientId, date])
+  @@index([professionalId, date])
 }
 
 model PatientFileRecord {
@@ -220,4 +246,7 @@ model PatientFileRecord {
   file        Json
 
   patient Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+
+  @@index([patientId])
+  @@index([category])
 }

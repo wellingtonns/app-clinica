@@ -38,6 +38,11 @@ const emptyClinicData: PersistedClinicData = {
   financialEntries: []
 };
 
+const clinicDataCacheKey = "softstetic:clinic-data:v1";
+let clinicDataCache: PersistedClinicData | null = null;
+let clinicDataFetchPromise: Promise<PersistedClinicData> | null = null;
+let clinicDataVersion = 0;
+
 function createId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 }
@@ -233,14 +238,25 @@ function syncFinancialEntries(
 ): FinancialEntry[] {
   const patientIds = new Set(patients.map((item) => item.id));
   const productIds = new Set(products.map((item) => item.id));
+  const appointmentIds = new Set(appointments.map((item) => item.id));
   const normalizedEntries = currentEntries.filter(
     (entry) =>
       (entry.type === "Receita" &&
         entry.patientId &&
         patientIds.has(entry.patientId) &&
         entry.appointmentId &&
-        appointments.some((appointment) => appointment.id === entry.appointmentId)) ||
+        appointmentIds.has(entry.appointmentId)) ||
       (entry.type === "Despesa" && entry.productId && productIds.has(entry.productId))
+  );
+  const entriesByAppointmentId = new Map(
+    normalizedEntries
+      .filter((entry) => entry.type === "Receita" && entry.appointmentId)
+      .map((entry) => [entry.appointmentId, entry])
+  );
+  const entriesByProductId = new Map(
+    normalizedEntries
+      .filter((entry) => entry.type === "Despesa" && entry.productId)
+      .map((entry) => [entry.productId, entry])
   );
 
   const revenueEntries = appointments.reduce<FinancialEntry[]>((accumulator, appointment) => {
@@ -248,7 +264,7 @@ function syncFinancialEntries(
       return accumulator.filter((entry) => entry.appointmentId !== appointment.id || entry.type !== "Receita");
     }
 
-    const existingEntry = accumulator.find((entry) => entry.type === "Receita" && entry.appointmentId === appointment.id);
+    const existingEntry = entriesByAppointmentId.get(appointment.id);
     const status = appointment.paymentStatus ?? existingEntry?.status ?? "Pendente";
     const paidAmount =
       status === "Pago"
@@ -283,7 +299,7 @@ function syncFinancialEntries(
 
   return products.reduce<FinancialEntry[]>((accumulator, product) => {
     const amount = product.stock * product.unitCost;
-    const existingEntry = accumulator.find((entry) => entry.type === "Despesa" && entry.productId === product.id);
+    const existingEntry = entriesByProductId.get(product.id);
     const nextEntry: FinancialEntry = {
       id: existingEntry?.id ?? createId("EXP"),
       type: "Despesa",
@@ -315,6 +331,50 @@ function withSyncedFinancialEntries(data: PersistedClinicData): PersistedClinicD
   };
 }
 
+function readCachedClinicData() {
+  if (clinicDataCache) return clinicDataCache;
+  if (typeof window === "undefined") return null;
+
+  try {
+    const cached = window.sessionStorage.getItem(clinicDataCacheKey);
+    if (!cached) return null;
+    clinicDataCache = withSyncedFinancialEntries(normalizeClinicData(JSON.parse(cached) as Partial<PersistedClinicData>));
+    return clinicDataCache;
+  } catch (error) {
+    console.error(error);
+    window.sessionStorage.removeItem(clinicDataCacheKey);
+    return null;
+  }
+}
+
+function writeCachedClinicData(data: PersistedClinicData) {
+  clinicDataCache = data;
+  clinicDataVersion += 1;
+
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(clinicDataCacheKey, JSON.stringify(data));
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+async function fetchClinicData() {
+  if (clinicDataFetchPromise) return clinicDataFetchPromise;
+
+  clinicDataFetchPromise = fetch("/api/clinic", { cache: "no-cache" })
+    .then((response) => {
+      if (!response.ok) throw new Error("Não foi possível carregar os dados.");
+      return response.json() as Promise<PersistedClinicData>;
+    })
+    .then((payload) => withSyncedFinancialEntries(normalizeClinicData(payload)))
+    .finally(() => {
+      clinicDataFetchPromise = null;
+    });
+
+  return clinicDataFetchPromise;
+}
+
 async function saveClinicData(data: PersistedClinicData) {
   const response = await fetch("/api/clinic", {
     method: "PUT",
@@ -324,26 +384,29 @@ async function saveClinicData(data: PersistedClinicData) {
   });
 
   if (!response.ok) throw new Error("Não foi possível salvar os dados.");
-  return normalizeClinicData((await response.json()) as PersistedClinicData);
 }
 
 export function useClinicData() {
-  const [data, setData] = useState<PersistedClinicData>(emptyClinicData);
+  const initialData = readCachedClinicData();
+  const [data, setData] = useState<PersistedClinicData>(initialData ?? emptyClinicData);
+  const [isLoading, setIsLoading] = useState(!initialData);
 
   useEffect(() => {
     let isMounted = true;
+    const requestedVersion = clinicDataVersion;
 
-    fetch("/api/clinic", { cache: "no-store" })
-      .then((response) => {
-        if (!response.ok) throw new Error("Não foi possível carregar os dados.");
-        return response.json() as Promise<PersistedClinicData>;
-      })
-      .then((payload) => {
-        if (isMounted) setData(withSyncedFinancialEntries(normalizeClinicData(payload)));
+    fetchClinicData()
+      .then((freshData) => {
+        if (!isMounted || clinicDataVersion !== requestedVersion) return;
+        writeCachedClinicData(freshData);
+        setData(freshData);
       })
       .catch((error) => {
         console.error(error);
-        if (isMounted) setData(emptyClinicData);
+        if (isMounted && !readCachedClinicData()) setData(emptyClinicData);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
       });
 
     return () => {
@@ -354,14 +417,15 @@ export function useClinicData() {
   const setPersistedData = (updater: (current: PersistedClinicData) => PersistedClinicData) => {
     setData((current) => {
       const next = withSyncedFinancialEntries(updater(current));
+      writeCachedClinicData(next);
       void saveClinicData(next)
-        .then((savedData) => setData(withSyncedFinancialEntries(savedData)))
         .catch((error) => console.error(error));
       return next;
     });
   };
 
   return {
+    isLoading,
     patients: data.patients,
     products: data.products,
     professionals: data.professionals,

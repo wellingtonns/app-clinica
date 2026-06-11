@@ -1,16 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-
-const globalForPrisma = globalThis;
-
-const prisma =
-  globalForPrisma.softSteticHealthPrisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"]
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.softSteticHealthPrisma = prisma;
-}
+import { prisma } from "./_prisma.js";
 
 function json(res, status, payload) {
   res.statusCode = status;

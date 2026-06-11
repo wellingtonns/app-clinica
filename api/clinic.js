@@ -1,22 +1,16 @@
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "./_prisma.js";
 
-const globalForPrisma = globalThis;
-
-const prisma =
-  globalForPrisma.softSteticPrisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"]
-  });
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.softSteticPrisma = prisma;
-}
-
-function json(res, status, payload) {
+function json(res, status, payload, cacheControl = "no-store, max-age=0") {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json");
-  res.setHeader("Cache-Control", "no-store, max-age=0");
+  res.setHeader("Cache-Control", cacheControl);
   res.end(JSON.stringify(payload));
+}
+
+function empty(res, status) {
+  res.statusCode = status;
+  res.setHeader("Cache-Control", "no-store, max-age=0");
+  res.end();
 }
 
 function readBody(req) {
@@ -44,6 +38,145 @@ function readBody(req) {
 function toArray(value) {
   return Array.isArray(value) ? value : [];
 }
+
+const patientSelect = {
+  id: true,
+  fullName: true,
+  birthDate: true,
+  cpf: true,
+  phone: true,
+  email: true,
+  address: true,
+  generalObservations: true,
+  allergySummary: true,
+  restrictionSummary: true,
+  status: true,
+  createdAt: true,
+  updatedAt: true
+};
+
+const productSelect = {
+  id: true,
+  name: true,
+  category: true,
+  sku: true,
+  batch: true,
+  expiry: true,
+  price: true,
+  stock: true,
+  minimumStock: true,
+  unit: true,
+  unitCost: true,
+  purchaseDate: true,
+  supplier: true,
+  description: true
+};
+
+const professionalSelect = {
+  id: true,
+  name: true,
+  specialty: true,
+  role: true,
+  commissionRate: true,
+  nextShift: true,
+  phone: true,
+  email: true,
+  council: true,
+  status: true
+};
+
+const appointmentSelect = {
+  id: true,
+  patientId: true,
+  professionalId: true,
+  procedure: true,
+  date: true,
+  time: true,
+  originalDate: true,
+  originalTime: true,
+  rescheduleReason: true,
+  isRescheduled: true,
+  durationMinutes: true,
+  status: true,
+  paymentStatus: true,
+  paymentMethod: true,
+  paymentDate: true,
+  paidAmount: true,
+  installments: true,
+  notes: true,
+  price: true,
+  history: true
+};
+
+const financialEntrySelect = {
+  id: true,
+  type: true,
+  appointmentId: true,
+  productId: true,
+  patientId: true,
+  procedure: true,
+  productName: true,
+  description: true,
+  date: true,
+  amount: true,
+  paidAmount: true,
+  balanceAmount: true,
+  status: true,
+  paymentMethod: true,
+  paymentDate: true,
+  installments: true,
+  source: true
+};
+
+const anamnesisSelect = {
+  id: true,
+  patientId: true,
+  version: true,
+  createdAt: true,
+  updatedAt: true,
+  updatedBy: true,
+  healthHistory: true,
+  priorDiseases: true,
+  surgeries: true,
+  treatments: true,
+  allergies: true,
+  medications: true,
+  habits: true,
+  mainComplaint: true,
+  professionalObservations: true,
+  checkboxes: true,
+  attachments: true
+};
+
+const contractSelect = {
+  id: true,
+  patientId: true,
+  version: true,
+  contractType: true,
+  signedAt: true,
+  observations: true,
+  file: true,
+  uploadedAt: true
+};
+
+const procedureSelect = {
+  id: true,
+  patientId: true,
+  name: true,
+  procedureType: true,
+  date: true,
+  professionalId: true,
+  observations: true,
+  photos: true
+};
+
+const patientFileSelect = {
+  id: true,
+  patientId: true,
+  category: true,
+  description: true,
+  file: true
+};
 
 function paymentFromAppointment(appointment) {
   const status = appointment.paymentStatus ?? "Pendente";
@@ -90,15 +223,15 @@ async function getClinicState() {
     appointments,
     financialEntries
   ] = await Promise.all([
-    prisma.patient.findMany({ orderBy: { fullName: "asc" } }),
-    prisma.product.findMany({ orderBy: { name: "asc" } }),
-    prisma.professional.findMany({ orderBy: { name: "asc" } }),
-    prisma.anamnesisRecord.findMany({ orderBy: [{ patientId: "asc" }, { version: "asc" }] }),
-    prisma.contractRecord.findMany({ orderBy: [{ patientId: "asc" }, { version: "asc" }] }),
-    prisma.procedureRecord.findMany({ orderBy: [{ date: "desc" }, { name: "asc" }] }),
-    prisma.patientFileRecord.findMany({ orderBy: { id: "asc" } }),
-    prisma.appointment.findMany({ orderBy: [{ date: "asc" }, { time: "asc" }] }),
-    prisma.financialEntry.findMany({ orderBy: [{ date: "desc" }, { description: "asc" }] })
+    prisma.patient.findMany({ select: patientSelect, orderBy: { fullName: "asc" } }),
+    prisma.product.findMany({ select: productSelect, orderBy: { name: "asc" } }),
+    prisma.professional.findMany({ select: professionalSelect, orderBy: { name: "asc" } }),
+    prisma.anamnesisRecord.findMany({ select: anamnesisSelect, orderBy: [{ patientId: "asc" }, { version: "asc" }] }),
+    prisma.contractRecord.findMany({ select: contractSelect, orderBy: [{ patientId: "asc" }, { version: "asc" }] }),
+    prisma.procedureRecord.findMany({ select: procedureSelect, orderBy: [{ date: "desc" }, { name: "asc" }] }),
+    prisma.patientFileRecord.findMany({ select: patientFileSelect, orderBy: { id: "asc" } }),
+    prisma.appointment.findMany({ select: appointmentSelect, orderBy: [{ date: "asc" }, { time: "asc" }] }),
+    prisma.financialEntry.findMany({ select: financialEntrySelect, orderBy: [{ date: "desc" }, { description: "asc" }] })
   ]);
 
   return {
@@ -221,13 +354,13 @@ async function replaceClinicState(state) {
 export default async function handler(req, res) {
   try {
     if (req.method === "GET") {
-      return json(res, 200, await getClinicState());
+      return json(res, 200, await getClinicState(), "private, max-age=15, stale-while-revalidate=60");
     }
 
     if (req.method === "PUT") {
       const body = await readBody(req);
       await replaceClinicState(body);
-      return json(res, 200, await getClinicState());
+      return empty(res, 204);
     }
 
     res.setHeader("Allow", "GET, PUT");
