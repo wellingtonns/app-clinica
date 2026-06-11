@@ -27,6 +27,10 @@ async function readErrorMessage(response: Response, fallback: string) {
     const payload = (await response.json()) as { error?: string };
     return payload.error || fallback;
   } catch {
+    if (response.status === 404 || response.status === 405) {
+      return "A API de autenticação não está disponível neste ambiente. Use o Vercel local ou o deploy da Vercel para testar.";
+    }
+
     return fallback;
   }
 }
