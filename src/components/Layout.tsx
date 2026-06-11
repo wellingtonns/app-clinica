@@ -24,14 +24,7 @@ export function Layout({ children }: Props) {
     <main className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <img className="brand-icon" src="/softstetic-favicon.svg" alt="" aria-hidden="true" />
-          <div className="brand-copy">
-            <strong>
-              <span>Soft</span>
-              <span>Stetic</span>
-            </strong>
-            <small>Gestao para clinicas</small>
-          </div>
+          <img className="brand-logo" src="/stetic-soft-logo.png" alt="Stetic Soft - Gestao para clinicas" />
         </div>
 
         <nav className="nav-card">

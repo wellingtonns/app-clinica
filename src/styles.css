@@ -134,53 +134,19 @@ th {
 }
 
 .brand {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.95rem 1rem;
+  display: grid;
+  place-items: center;
+  padding: 0.85rem;
   margin-bottom: 1rem;
 }
 
-.brand-icon {
+.brand-logo {
   display: block;
-  width: 3.15rem;
-  height: 3.15rem;
-  flex: 0 0 auto;
+  width: 100%;
+  max-width: 230px;
+  height: 66px;
+  object-fit: contain;
   border-radius: 16px;
-  box-shadow: 0 10px 22px rgba(127, 47, 85, 0.18);
-}
-
-.brand-copy {
-  min-width: 0;
-}
-
-.brand-copy strong {
-  display: flex;
-  align-items: baseline;
-  gap: 0.18rem;
-  line-height: 1;
-  font-size: 1.18rem;
-  font-weight: 650;
-  letter-spacing: -0.03em;
-}
-
-.brand-copy strong span:first-child {
-  color: #202634;
-}
-
-.brand-copy strong span:last-child {
-  color: var(--rose);
-}
-
-.brand-copy small {
-  display: block;
-  margin-top: 0.32rem;
-  color: var(--muted);
-  font-size: 0.58rem;
-  font-weight: 800;
-  letter-spacing: 0.22em;
-  text-transform: uppercase;
-  white-space: nowrap;
 }
 
 .nav-card {
@@ -1589,7 +1555,8 @@ th {
     max-width: none;
   }
 
-  .brand-copy small {
-    white-space: normal;
+  .brand-logo {
+    max-width: 210px;
+    height: 64px;
   }
 }
