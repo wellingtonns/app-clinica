@@ -49,8 +49,8 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: "fotos", label: "Fotos do Paciente" }
 ];
 
-const photoCategories: PhotoCategory[] = ["Antes", "Depois", "Durante", "Evolucao"];
-const bodyAreas: BodyArea[] = ["Rosto", "Costas", "Barriga", "Pernas", "Bracos", "Gluteos", "Geral"];
+const photoCategories: PhotoCategory[] = ["Antes", "Depois", "Durante", "Evolução"];
+const bodyAreas: BodyArea[] = ["Rosto", "Costas", "Barriga", "Pernas", "Braços", "Glúteos", "Geral"];
 
 const emptyAsset: StoredAsset = {
   id: "",
@@ -156,7 +156,7 @@ function ContractPreview({
     );
   }
 
-  return <div className="empty-state">Formato sem preview embutido.</div>;
+  return <div className="empty-state">Formato sem pré-visualização embutida.</div>;
 }
 
 function AssetViewerModal({
@@ -179,7 +179,7 @@ function AssetViewerModal({
       <div className="viewer-shell viewer-shell-large">
         <div className="viewer-header">
           <div>
-            <p className="eyebrow">Visualizacao</p>
+            <p className="eyebrow">Visualização</p>
             <h3>{title}</h3>
           </div>
           <div className="row-actions">
@@ -199,7 +199,7 @@ function AssetViewerModal({
           </div>
         </div>
         <div className="viewer-body">
-          <ContractPreview asset={asset} zoom={zoom} emptyLabel="Arquivo indisponivel." />
+          <ContractPreview asset={asset} zoom={zoom} emptyLabel="Arquivo indisponível." />
         </div>
       </div>
     </div>
@@ -258,7 +258,7 @@ function PhotoLightbox({
             </select>
           </label>
           <button className="inline-button" type="button" onClick={onNext} disabled={photos.length <= 1}>
-            Proxima
+            Próxima
           </button>
           <button className="inline-button" type="button" onClick={() => triggerDownload(photo)}>
             Baixar
@@ -293,8 +293,8 @@ function groupPhotosByArea(photos: ProcedurePhoto[]) {
       Costas: [],
       Barriga: [],
       Pernas: [],
-      Bracos: [],
-      Gluteos: [],
+      Braços: [],
+      Glúteos: [],
       Geral: []
     }
   );
@@ -451,8 +451,8 @@ export function PatientModal({
           Costas: [],
           Barriga: [],
           Pernas: [],
-          Bracos: [],
-          Gluteos: [],
+          Braços: [],
+          Glúteos: [],
           Geral: []
         }
       ),
@@ -486,7 +486,7 @@ export function PatientModal({
 
   const savePatient = (goNext: boolean) => {
     if (!patientForm.fullName.trim() || !patientForm.phone.trim()) {
-      setError("Nome completo e telefone sao obrigatorios.");
+      setError("Nome completo e telefone são obrigatórios.");
       return false;
     }
 
@@ -540,7 +540,7 @@ export function PatientModal({
     }
 
     if (!contractForm.file.dataUrl) {
-      setError("Envie o arquivo assinado para salvar esta versao do contrato.");
+      setError("Envie o arquivo assinado para salvar esta versão do contrato.");
       return false;
     }
 
@@ -634,7 +634,7 @@ export function PatientModal({
 
     const printWindow = window.open("", "_blank", "width=1024,height=768");
     if (!printWindow) {
-      setError("Nao foi possivel abrir a janela de impressao.");
+      setError("Não foi possível abrir a janela de impressão.");
       return;
     }
 
@@ -732,7 +732,7 @@ export function PatientModal({
                   </label>
                 </div>
                 <label>
-                  <span>Endereco</span>
+                  <span>Endereço</span>
                   <input value={patientForm.address} onChange={(event) => setPatientForm({ ...patientForm, address: event.target.value })} />
                 </label>
                 <div className="form-grid form-grid-2">
@@ -741,12 +741,12 @@ export function PatientModal({
                     <input value={patientForm.allergySummary} onChange={(event) => setPatientForm({ ...patientForm, allergySummary: event.target.value })} />
                   </label>
                   <label>
-                    <span>Restricoes</span>
+                    <span>Restrições</span>
                     <input value={patientForm.restrictionSummary} onChange={(event) => setPatientForm({ ...patientForm, restrictionSummary: event.target.value })} />
                   </label>
                 </div>
                 <label>
-                  <span>Observacoes gerais</span>
+                  <span>Observações gerais</span>
                   <textarea rows={4} value={patientForm.generalObservations} onChange={(event) => setPatientForm({ ...patientForm, generalObservations: event.target.value })} />
                 </label>
               </div>
@@ -756,7 +756,7 @@ export function PatientModal({
               <div className="crud-form">
                 <div className="form-grid form-grid-2">
                   <label>
-                    <span>Ultima atualizacao por</span>
+                    <span>Última atualização por</span>
                     <input value={anamnesisForm.updatedBy} onChange={(event) => setAnamnesisForm({ ...anamnesisForm, updatedBy: event.target.value })} />
                   </label>
                   <label>
@@ -765,12 +765,12 @@ export function PatientModal({
                   </label>
                 </div>
                 <label>
-                  <span>Historico de saude</span>
+                  <span>Histórico de saúde</span>
                   <textarea rows={3} value={anamnesisForm.healthHistory} onChange={(event) => setAnamnesisForm({ ...anamnesisForm, healthHistory: event.target.value })} />
                 </label>
                 <div className="form-grid form-grid-2">
                   <label>
-                    <span>Doencas previas</span>
+                    <span>Doenças prévias</span>
                     <textarea rows={3} value={anamnesisForm.priorDiseases} onChange={(event) => setAnamnesisForm({ ...anamnesisForm, priorDiseases: event.target.value })} />
                   </label>
                   <label>
@@ -790,17 +790,17 @@ export function PatientModal({
                     <textarea rows={3} value={anamnesisForm.allergies} onChange={(event) => setAnamnesisForm({ ...anamnesisForm, allergies: event.target.value })} />
                   </label>
                   <label>
-                    <span>Habitos</span>
+                    <span>Hábitos</span>
                     <textarea rows={3} value={anamnesisForm.habits} onChange={(event) => setAnamnesisForm({ ...anamnesisForm, habits: event.target.value })} />
                   </label>
                 </div>
                 <label>
-                  <span>Observacoes do profissional</span>
+                  <span>Observações do profissional</span>
                   <textarea rows={3} value={anamnesisForm.professionalObservations} onChange={(event) => setAnamnesisForm({ ...anamnesisForm, professionalObservations: event.target.value })} />
                 </label>
                 <div className="checkbox-grid">
                   {[
-                    ["hasPriorDiseases", "Doencas previas"],
+                    ["hasPriorDiseases", "Doenças prévias"],
                     ["hasSurgeries", "Cirurgias"],
                     ["isUnderTreatment", "Em tratamento"],
                     ["hasAllergies", "Possui alergias"],
@@ -857,7 +857,7 @@ export function PatientModal({
                     <article key={record.id} className="history-card">
                       <div className="panel-header">
                         <div>
-                          <h4>Versao {record.version}</h4>
+                          <h4>Versão {record.version}</h4>
                           <p>{formatDateTime(record.updatedAt)} | {record.updatedBy}</p>
                         </div>
                         <div className="row-actions">
@@ -898,7 +898,7 @@ export function PatientModal({
                 <div className="history-card">
                   <div className="panel-header">
                     <div>
-                      <h4>Geracao automatica</h4>
+                      <h4>Geração automática</h4>
                       <p>Monte o contrato com base na ficha do paciente e na anamnese antes de imprimir.</p>
                     </div>
                     <div className="row-actions">
@@ -936,8 +936,8 @@ export function PatientModal({
                 <div className="history-card">
                   <div className="panel-header">
                     <div>
-                      <h4>Upload do contrato assinado</h4>
-                      <p>O envio do arquivo assinado e opcional e pode ser feito depois da impressao.</p>
+                      <h4>Envio do contrato assinado</h4>
+                      <p>O envio do arquivo assinado é opcional e pode ser feito depois da impressão.</p>
                     </div>
                   </div>
                   <div className="form-grid form-grid-2">
@@ -951,17 +951,17 @@ export function PatientModal({
                     </label>
                   </div>
                   <label>
-                    <span>Observacoes</span>
+                    <span>Observações</span>
                     <textarea rows={3} value={contractForm.observations} onChange={(event) => setContractForm({ ...contractForm, observations: event.target.value })} />
                   </label>
                   <label>
-                    <span>Upload PDF/JPG/PNG</span>
+                    <span>Enviar PDF/JPG/PNG</span>
                     <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(event) => handleUpload(event, (assets) => setContractForm({ ...contractForm, file: assets[0] ?? contractForm.file }))} />
                   </label>
                   <div className="contract-preview-card">
                     <div className="panel-header">
                       <div>
-                        <h4>Preview do arquivo enviado</h4>
+                        <h4>Pré-visualização do arquivo enviado</h4>
                         <p>{contractForm.file.fileName || "Nenhum arquivo selecionado."}</p>
                       </div>
                       {contractForm.file.dataUrl ? (
@@ -1010,7 +1010,7 @@ export function PatientModal({
                       <div className="panel-header">
                         <div>
                           <h4>{contract.contractType}</h4>
-                          <p>Versao {contract.version} | {formatDate(contract.signedAt)}</p>
+                          <p>Versão {contract.version} | {formatDate(contract.signedAt)}</p>
                         </div>
                         <div className="row-actions">
                           <button className="inline-button" type="button" onClick={() => openAssetViewer(contract.file, contract.file.fileName)}>
@@ -1037,7 +1037,7 @@ export function PatientModal({
                           </button>
                         </div>
                       </div>
-                      <p className="summary">{contract.observations || "Sem observacoes."}</p>
+                      <p className="summary">{contract.observations || "Sem observações."}</p>
                     </article>
                   ))}
                 </div>
@@ -1062,7 +1062,7 @@ export function PatientModal({
                   <label>
                     <span>Profissional</span>
                     <select value={procedureForm.professionalId} onChange={(event) => setProcedureForm({ ...procedureForm, professionalId: event.target.value })}>
-                      <option value="">Nao informado</option>
+                      <option value="">Não informado</option>
                       {professionals.map((professional) => (
                         <option key={professional.id} value={professional.id}>
                           {professional.name}
@@ -1072,7 +1072,7 @@ export function PatientModal({
                   </label>
                 </div>
                 <label>
-                  <span>Observacoes</span>
+                  <span>Observações</span>
                   <textarea rows={3} value={procedureForm.observations} onChange={(event) => setProcedureForm({ ...procedureForm, observations: event.target.value })} />
                 </label>
                 <div className="form-grid form-grid-3">
@@ -1087,7 +1087,7 @@ export function PatientModal({
                     </select>
                   </label>
                   <label>
-                    <span>Area corporal</span>
+                    <span>Área corporal</span>
                     <select value={photoMeta.area} onChange={(event) => setPhotoMeta({ ...photoMeta, area: event.target.value as BodyArea })}>
                       {bodyAreas.map((area) => (
                         <option key={area} value={area}>
@@ -1102,11 +1102,11 @@ export function PatientModal({
                   </label>
                 </div>
                 <label>
-                  <span>Descricao</span>
+                  <span>Descrição</span>
                   <input value={photoMeta.description} onChange={(event) => setPhotoMeta({ ...photoMeta, description: event.target.value })} />
                 </label>
                 <label>
-                  <span>Upload multiplo</span>
+                  <span>Envio múltiplo</span>
                   <input
                     type="file"
                     accept=".jpg,.jpeg,.png,.webp,.svg"
@@ -1134,8 +1134,8 @@ export function PatientModal({
                   <div className="stack">
                     <div className="photo-section-header">
                       <div>
-                        <h4>{procedureForm.name || "Procedimento em edicao"}</h4>
-                        <p>As fotos abaixo ficam separadas por area corporal para facilitar a evolucao de cada procedimento.</p>
+                        <h4>{procedureForm.name || "Procedimento em edição"}</h4>
+                        <p>As fotos abaixo ficam separadas por área corporal para facilitar a evolução de cada procedimento.</p>
                       </div>
                     </div>
                     {bodyAreas.map((area) =>
@@ -1179,8 +1179,8 @@ export function PatientModal({
                   <article className="history-card">
                     <div className="panel-header">
                       <div>
-                        <h4>Galeria separada por area corporal</h4>
-                        <p>As fotos salvas ficam agrupadas em titulos como Rosto, Costas, Pernas e demais areas.</p>
+                        <h4>Galeria separada por área corporal</h4>
+                        <p>As fotos salvas ficam agrupadas em títulos como Rosto, Costas, Pernas e demais áreas.</p>
                       </div>
                     </div>
                     <div className="stack">
@@ -1193,7 +1193,7 @@ export function PatientModal({
                             <div className="panel-header">
                               <div>
                                 <h3>{area}</h3>
-                                <p>{areaPhotos.length} foto(s) nesta area</p>
+                                <p>{areaPhotos.length} foto(s) nesta área</p>
                               </div>
                             </div>
                             <div className="photo-grid compact-photo-grid">

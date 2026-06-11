@@ -96,29 +96,29 @@ export function DashboardPage({ patients, professionals, appointments }: Props) 
       value: String(todaysAppointments.length),
       detail:
         todaysAppointments.length > 0
-          ? `${todayStatusCounts.Confirmado} confirmados | ${todayStatusCounts.Agendado} aguardando confirmacao | ${todayStatusCounts.Realizado} realizados`
-          : "Nao ha agendamentos para hoje",
+          ? `${todayStatusCounts.Confirmado} confirmados | ${todayStatusCounts.Agendado} aguardando confirmação | ${todayStatusCounts.Realizado} realizados`
+          : "Não há agendamentos para hoje",
       icon: CalendarDays
     },
     {
-      label: "Clientes ativos",
+      label: "Pacientes ativos",
       value: String(patients.length),
-      detail: `${recentPatientIds.size} pacientes com movimentacao recente`,
+      detail: `${recentPatientIds.size} pacientes com movimentação recente`,
       icon: Users
     },
     {
-      label: "Faturamento do mes",
+      label: "Faturamento do mês",
       value: monthlyRevenue > 0 ? formatCurrency(monthlyRevenue) : formatCurrency(0),
       detail:
         completedThisMonth.length > 0
-          ? `${completedThisMonth.length} procedimentos concluidos no mes`
-          : "Sem faturamento no periodo",
+          ? `${completedThisMonth.length} procedimentos concluídos no mês`
+          : "Sem faturamento no período",
       icon: Wallet
     },
     {
       label: "Procedimentos realizados",
       value: String(completedThisMonth.length),
-      detail: completedThisMonth.length > 0 ? "No mes atual" : "Nenhum procedimento realizado",
+      detail: completedThisMonth.length > 0 ? "No mês atual" : "Nenhum procedimento realizado",
       icon: Sparkles
     }
   ];
@@ -127,18 +127,18 @@ export function DashboardPage({ patients, professionals, appointments }: Props) 
     <div className="beauty-dashboard">
       <header className="dashboard-topbar">
         <div>
-          <p className="eyebrow">Dashboard</p>
-          <h2>Ola, Administrador!</h2>
+          <p className="eyebrow">Painel</p>
+          <h2>Olá, Administrador!</h2>
           <p>Bem-vinda ao seu painel de controle.</p>
         </div>
 
         <div className="user-cluster" aria-label="Perfil da administradora">
-          <button className="icon-button" type="button" aria-label="Notificacoes">
+          <button className="icon-button" type="button" aria-label="Notificações">
             <span />
           </button>
           <div className="avatar">A</div>
           <strong>Administradora</strong>
-          <span className="online-indicator" title="Sistema Online" aria-label="Sistema Online" />
+          <span className="online-indicator" title="Sistema on-line" aria-label="Sistema on-line" />
         </div>
       </header>
 
@@ -164,7 +164,7 @@ export function DashboardPage({ patients, professionals, appointments }: Props) 
           <div className="panel-header">
             <div>
               <h4>Agenda</h4>
-              <p>Agendamentos de hoje e proximos atendimentos futuros, ordenados por data e horario.</p>
+              <p>Agendamentos de hoje e próximos atendimentos futuros, ordenados por data e horário.</p>
             </div>
           </div>
           {agendaAppointments.length > 0 ? (
@@ -173,8 +173,8 @@ export function DashboardPage({ patients, professionals, appointments }: Props) 
                 <thead>
                   <tr>
                     <th>Data</th>
-                    <th>Horario</th>
-                    <th>Cliente</th>
+                    <th>Horário</th>
+                    <th>Paciente</th>
                     <th>Procedimento</th>
                     <th>Profissional</th>
                     <th>Status</th>

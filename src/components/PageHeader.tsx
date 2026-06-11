@@ -16,7 +16,7 @@ export function PageHeader({ eyebrow, title, description, badge }: Props) {
       <div className="hero-panels">
         {badge ? (
           <article className="hero-tile">
-            <span>Status do modulo</span>
+            <span>Status do módulo</span>
             <strong>{badge}</strong>
             <small>Fluxo pronto para criar, editar, listar e excluir registros.</small>
           </article>

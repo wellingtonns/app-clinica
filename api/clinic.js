@@ -231,9 +231,9 @@ export default async function handler(req, res) {
     }
 
     res.setHeader("Allow", "GET, PUT");
-    return json(res, 405, { error: "Metodo nao permitido." });
+    return json(res, 405, { error: "Método não permitido." });
   } catch (error) {
     console.error(error);
-    return json(res, 500, { error: "Nao foi possivel acessar os dados da clinica." });
+    return json(res, 500, { error: "Não foi possível acessar os dados da clínica." });
   }
 }

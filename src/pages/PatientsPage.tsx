@@ -101,7 +101,7 @@ export function PatientsPage({
   return (
     <>
       <PageTopbar
-        title="Clientes"
+        title="Pacientes"
         subtitle="Cadastro e gerenciamento de pacientes."
         action={
           <button
@@ -112,13 +112,13 @@ export function PatientsPage({
               setSelectedPatientId("new");
             }}
           >
-            Novo cliente
+            Novo paciente
           </button>
         }
       />
 
       <section className="section">
-        <CrudPanel title="Pacientes" subtitle="Base cadastrada da clinica">
+        <CrudPanel title="Pacientes" subtitle="Base cadastrada da clínica">
           <div className="list-toolbar">
             <div className="list-toolbar-group">
               <label className="toolbar-field">
@@ -151,7 +151,7 @@ export function PatientsPage({
                 <select value={sortBy} onChange={(event) => setSortBy(event.target.value as SortKey)}>
                   <option value="name">Nome</option>
                   <option value="createdAt">Data de cadastro</option>
-                  <option value="lastAttendance">Ultimo atendimento</option>
+                  <option value="lastAttendance">Último atendimento</option>
                 </select>
               </label>
             </div>
@@ -164,8 +164,8 @@ export function PatientsPage({
                   <th>Nome</th>
                   <th>Telefone</th>
                   <th>Status</th>
-                  <th>Ultima atualizacao</th>
-                  <th>Acoes</th>
+                  <th>Última atualização</th>
+                  <th>Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -173,7 +173,7 @@ export function PatientsPage({
                   <tr key={patient.id}>
                     <td>
                       <strong>{patient.fullName}</strong>
-                      <div className="table-subtitle">{patient.cpf || "CPF opcional nao informado"}</div>
+                      <div className="table-subtitle">{patient.cpf || "CPF opcional não informado"}</div>
                     </td>
                     <td>{patient.phone}</td>
                     <td>{patient.status}</td>
@@ -237,10 +237,10 @@ export function PatientsPage({
                 Anterior
               </button>
               <span className="page-indicator">
-                Pagina {currentPage} de {totalPages}
+                Página {currentPage} de {totalPages}
               </span>
               <button className="ghost-button" type="button" onClick={() => setPage(Math.min(totalPages, currentPage + 1))}>
-                Proxima
+                Próxima
               </button>
             </div>
           </div>

@@ -47,7 +47,7 @@ export default async function handler(_req, res) {
     return json(res, 500, {
       ok: false,
       database: "error",
-      message: "Nao foi possivel conectar ao banco."
+      message: "Não foi possível conectar ao banco."
     });
   }
 }

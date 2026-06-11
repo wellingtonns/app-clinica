@@ -66,11 +66,11 @@ const tabs: { key: TabKey; label: string }[] = [
   { key: "anamnese", label: "Anamnese" },
   { key: "contrato", label: "Contrato" },
   { key: "procedimentos", label: "Procedimentos" },
-  { key: "fotos", label: "Fotos / Evolucao" },
+  { key: "fotos", label: "Fotos / Evolução" },
   { key: "arquivos", label: "Arquivos" }
 ];
 
-const photoCategories: PhotoCategory[] = ["Antes", "Depois", "Durante", "Evolucao"];
+const photoCategories: PhotoCategory[] = ["Antes", "Depois", "Durante", "Evolução"];
 const fileCategories: FileCategory[] = ["Geral", "Anamnese", "Exame", "Documento"];
 
 function emptyAnamnesisForm(): AnamnesisForm {
@@ -137,7 +137,7 @@ function AssetPreview({ asset }: { asset: StoredAsset | null }) {
 
   return (
     <div className="empty-state">
-      <p>Preview nao disponivel para este formato.</p>
+      <p>Pré-visualização não disponível para este formato.</p>
       <button className="inline-button" type="button" onClick={() => triggerDownload(asset)}>
         Baixar arquivo
       </button>
@@ -334,7 +334,7 @@ export function PatientDetailsPage({
         subtitle="Central do paciente."
         action={
           <Link className="inline-button link-button" to="/pacientes">
-            Voltar para clientes
+            Voltar para pacientes
           </Link>
         }
       />
@@ -344,7 +344,7 @@ export function PatientDetailsPage({
           <div className="patient-quick-info">
             <span>{patient.phone}</span>
             <span>{patient.email || "Sem e-mail"}</span>
-            <span>{patient.cpf || "CPF nao informado"}</span>
+            <span>{patient.cpf || "CPF não informado"}</span>
           </div>
         </div>
       </section>
@@ -378,34 +378,34 @@ export function PatientDetailsPage({
               </div>
               <div className="summary-card">
                 <strong>Alergias</strong>
-                <span>{patient.allergySummary || "Nao informado"}</span>
+                <span>{patient.allergySummary || "Não informado"}</span>
               </div>
               <div className="summary-card">
-                <strong>Restricoes</strong>
-                <span>{patient.restrictionSummary || "Nao informado"}</span>
+                <strong>Restrições</strong>
+                <span>{patient.restrictionSummary || "Não informado"}</span>
               </div>
             </div>
             <div className="stack">
               <div className="list-card">
-                <strong>Endereco</strong>
-                <span>{patient.address || "Nao informado"}</span>
+                <strong>Endereço</strong>
+                <span>{patient.address || "Não informado"}</span>
               </div>
               <div className="list-card">
-                <strong>Observacoes gerais</strong>
-                <span>{patient.generalObservations || "Sem observacoes."}</span>
+                <strong>Observações gerais</strong>
+                <span>{patient.generalObservations || "Sem observações."}</span>
               </div>
             </div>
           </CrudPanel>
 
-          <CrudPanel title="Historico relacionado" subtitle="Visao rapida da central">
+          <CrudPanel title="Histórico relacionado" subtitle="Visão rápida da central">
             <div className="stack">
               <div className="list-card">
                 <strong>Anamneses registradas</strong>
-                <span>{patientAnamneses.length} versao(oes)</span>
+                <span>{patientAnamneses.length} versão(ões)</span>
               </div>
               <div className="list-card">
-                <strong>Ultima atualizacao de anamnese</strong>
-                <span>{latestAnamnesis ? formatDateTime(latestAnamnesis.updatedAt) : "Sem historico"}</span>
+                <strong>Última atualização de anamnese</strong>
+                <span>{latestAnamnesis ? formatDateTime(latestAnamnesis.updatedAt) : "Sem histórico"}</span>
               </div>
               <div className="list-card">
                 <strong>Contrato mais recente</strong>
@@ -445,7 +445,7 @@ export function PatientDetailsPage({
                 </label>
               </div>
               <label>
-                <span>Historico de saude</span>
+                <span>Histórico de saúde</span>
                 <textarea
                   rows={3}
                   value={anamnesisForm.healthHistory}
@@ -454,7 +454,7 @@ export function PatientDetailsPage({
               </label>
               <div className="form-grid form-grid-2">
                 <label>
-                  <span>Doencas previas</span>
+                  <span>Doenças prévias</span>
                   <textarea
                     rows={3}
                     value={anamnesisForm.priorDiseases}
@@ -494,7 +494,7 @@ export function PatientDetailsPage({
                   />
                 </label>
                 <label>
-                  <span>Habitos</span>
+                  <span>Hábitos</span>
                   <textarea
                     rows={3}
                     value={anamnesisForm.habits}
@@ -503,7 +503,7 @@ export function PatientDetailsPage({
                 </label>
               </div>
               <label>
-                <span>Observacoes do profissional</span>
+                <span>Observações do profissional</span>
                 <textarea
                   rows={4}
                   value={anamnesisForm.professionalObservations}
@@ -515,13 +515,13 @@ export function PatientDetailsPage({
 
               <div className="checkbox-grid">
                 {[
-                  ["hasPriorDiseases", "Doencas previas"],
+                  ["hasPriorDiseases", "Doenças prévias"],
                   ["hasSurgeries", "Cirurgias"],
                   ["isUnderTreatment", "Em tratamento"],
                   ["hasAllergies", "Possui alergias"],
-                  ["usesMedication", "Usa medicacao continua"],
+                  ["usesMedication", "Usa medicação contínua"],
                   ["smokes", "Tabagismo"],
-                  ["drinksAlcohol", "Consumo de alcool"]
+                  ["drinksAlcohol", "Consumo de álcool"]
                 ].map(([key, label]) => (
                   <label key={key} className="check-card">
                     <input
@@ -582,7 +582,7 @@ export function PatientDetailsPage({
 
               <div className="form-actions">
                 <button className="primary-button" type="submit">
-                  {anamnesisEditingId ? "Salvar anamnese" : "Registrar nova versao"}
+                  {anamnesisEditingId ? "Salvar anamnese" : "Registrar nova versão"}
                 </button>
                 <button className="ghost-button" type="button" onClick={resetAnamnesisForm}>
                   Limpar
@@ -591,13 +591,13 @@ export function PatientDetailsPage({
             </form>
           </CrudPanel>
 
-          <CrudPanel title="Historico de anamnese" subtitle="Versoes, anexos e atualizacoes">
+          <CrudPanel title="Histórico de anamnese" subtitle="Versões, anexos e atualizações">
             <div className="stack">
               {patientAnamneses.map((record) => (
                 <article key={record.id} className="history-card">
                   <div className="panel-header">
                     <div>
-                      <h4>Versao {record.version}</h4>
+                      <h4>Versão {record.version}</h4>
                       <p>Atualizado em {formatDateTime(record.updatedAt)} por {record.updatedBy}</p>
                     </div>
                     <div className="row-actions">
@@ -628,7 +628,7 @@ export function PatientDetailsPage({
                         className="inline-button danger"
                         type="button"
                         onClick={() => {
-                          if (!window.confirm("Excluir esta versao da anamnese?")) return;
+                          if (!window.confirm("Excluir esta versão da anamnese?")) return;
                           deleteAnamnesis(record.id);
                           if (anamnesisEditingId === record.id) resetAnamnesisForm();
                         }}
@@ -640,29 +640,29 @@ export function PatientDetailsPage({
                   <div className="history-grid">
                     <div>
                       <strong>Queixa principal</strong>
-                      <p className="summary">{record.mainComplaint || "Nao informado"}</p>
+                      <p className="summary">{record.mainComplaint || "Não informado"}</p>
                     </div>
                     <div>
-                      <strong>Historico de saude</strong>
-                      <p className="summary">{record.healthHistory || "Nao informado"}</p>
+                      <strong>Histórico de saúde</strong>
+                      <p className="summary">{record.healthHistory || "Não informado"}</p>
                     </div>
                     <div>
                       <strong>Alergias</strong>
-                      <p className="summary">{record.allergies || "Nao informado"}</p>
+                      <p className="summary">{record.allergies || "Não informado"}</p>
                     </div>
                     <div>
                       <strong>Medicamentos</strong>
-                      <p className="summary">{record.medications || "Nao informado"}</p>
+                      <p className="summary">{record.medications || "Não informado"}</p>
                     </div>
                   </div>
                   <div className="data-list">
-                    {record.checkboxes.hasPriorDiseases ? <span>Doencas previas</span> : null}
+                    {record.checkboxes.hasPriorDiseases ? <span>Doenças prévias</span> : null}
                     {record.checkboxes.hasSurgeries ? <span>Cirurgias</span> : null}
                     {record.checkboxes.isUnderTreatment ? <span>Em tratamento</span> : null}
                     {record.checkboxes.hasAllergies ? <span>Possui alergias</span> : null}
                     {record.checkboxes.usesMedication ? <span>Usa medicacao</span> : null}
                     {record.checkboxes.smokes ? <span>Tabagismo</span> : null}
-                    {record.checkboxes.drinksAlcohol ? <span>Consumo de alcool</span> : null}
+                    {record.checkboxes.drinksAlcohol ? <span>Consumo de álcool</span> : null}
                   </div>
                   {record.attachments.length ? (
                     <div className="asset-list">
@@ -690,7 +690,7 @@ export function PatientDetailsPage({
 
       {activeTab === "contrato" ? (
         <section className="section page-grid">
-          <CrudPanel title={contractEditingId ? "Editar contrato" : "Novo contrato"} subtitle="Upload do contrato assinado">
+          <CrudPanel title={contractEditingId ? "Editar contrato" : "Novo contrato"} subtitle="Envio do contrato assinado">
             <form className="crud-form" onSubmit={submitContract}>
               <div className="form-grid form-grid-2">
                 <label>
@@ -710,7 +710,7 @@ export function PatientDetailsPage({
                 </label>
               </div>
               <label>
-                <span>Observacoes</span>
+                <span>Observações</span>
                 <textarea
                   rows={3}
                   value={contractForm.observations}
@@ -752,7 +752,7 @@ export function PatientDetailsPage({
             </form>
           </CrudPanel>
 
-          <CrudPanel title="Historico de contratos" subtitle="Preview, download e substituicoes">
+          <CrudPanel title="Histórico de contratos" subtitle="Pré-visualização, baixar e substituir">
             <div className="stack">
               <div className="preview-card">
                 <AssetPreview asset={selectedContractAsset} />
@@ -762,7 +762,7 @@ export function PatientDetailsPage({
                   <div className="panel-header">
                     <div>
                       <h4>{contract.contractType}</h4>
-                      <p>Versao {contract.version} | Assinado em {formatDate(contract.signedAt)}</p>
+                      <p>Versão {contract.version} | Assinado em {formatDate(contract.signedAt)}</p>
                     </div>
                     <div className="row-actions">
                       <button className="inline-button" type="button" onClick={() => setSelectedContractAsset(contract.file)}>
@@ -791,7 +791,7 @@ export function PatientDetailsPage({
                         className="inline-button danger"
                         type="button"
                         onClick={() => {
-                          if (!window.confirm("Excluir esta versao do contrato?")) return;
+                          if (!window.confirm("Excluir esta versão do contrato?")) return;
                           deleteContract(contract.id);
                           if (selectedContractAsset?.id === contract.file.id) {
                             setSelectedContractAsset(patientContracts.find((item) => item.id !== contract.id)?.file ?? null);
@@ -802,7 +802,7 @@ export function PatientDetailsPage({
                       </button>
                     </div>
                   </div>
-                  <p className="summary">{contract.observations || "Sem observacoes."}</p>
+                  <p className="summary">{contract.observations || "Sem observações."}</p>
                 </article>
               ))}
             </div>
@@ -812,7 +812,7 @@ export function PatientDetailsPage({
 
       {activeTab === "procedimentos" ? (
         <section className="section page-grid">
-          <CrudPanel title={procedureEditingId ? "Editar procedimento" : "Novo procedimento"} subtitle="Registro de evolucao do paciente">
+          <CrudPanel title={procedureEditingId ? "Editar procedimento" : "Novo procedimento"} subtitle="Registro de evolução do paciente">
             <form className="crud-form" onSubmit={submitProcedure}>
               <div className="form-grid form-grid-2">
                 <label>
@@ -838,12 +838,12 @@ export function PatientDetailsPage({
                   />
                 </label>
                 <label>
-                  <span>Profissional responsavel</span>
+                  <span>Profissional responsável</span>
                   <select
                     value={procedureForm.professionalId}
                     onChange={(event) => setProcedureForm({ ...procedureForm, professionalId: event.target.value })}
                   >
-                    <option value="">Nao informado</option>
+                    <option value="">Não informado</option>
                     {professionals.map((professional) => (
                       <option key={professional.id} value={professional.id}>
                         {professional.name}
@@ -853,7 +853,7 @@ export function PatientDetailsPage({
                 </label>
               </div>
               <label>
-                <span>Observacoes</span>
+                <span>Observações</span>
                 <textarea
                   rows={4}
                   value={procedureForm.observations}
@@ -887,7 +887,7 @@ export function PatientDetailsPage({
                     />
                   </label>
                   <label>
-                    <span>Descricao da foto</span>
+                    <span>Descrição da foto</span>
                     <input
                       value={photoUploadMeta.description}
                       onChange={(event) => setPhotoUploadMeta({ ...photoUploadMeta, description: event.target.value })}
@@ -895,7 +895,7 @@ export function PatientDetailsPage({
                   </label>
                 </div>
                 <label>
-                  <span>Upload multiplo de fotos</span>
+                  <span>Envio múltiplo de fotos</span>
                   <input
                     type="file"
                     accept=".jpg,.jpeg,.png,.webp,.svg"
@@ -955,7 +955,7 @@ export function PatientDetailsPage({
             </form>
           </CrudPanel>
 
-          <CrudPanel title="Historico de procedimentos" subtitle="Timeline por paciente">
+          <CrudPanel title="Histórico de procedimentos" subtitle="Linha do tempo por paciente">
             <div className="stack">
               {patientProcedures.map((procedure) => (
                 <article key={procedure.id} className="history-card">
@@ -963,7 +963,7 @@ export function PatientDetailsPage({
                     <div>
                       <h4>{procedure.name}</h4>
                       <p>
-                        {formatDate(procedure.date)} | {professionalNameById.get(procedure.professionalId) || "Profissional nao informado"}
+                        {formatDate(procedure.date)} | {professionalNameById.get(procedure.professionalId) || "Profissional não informado"}
                       </p>
                     </div>
                     <div className="row-actions">
@@ -997,7 +997,7 @@ export function PatientDetailsPage({
                       </button>
                     </div>
                   </div>
-                  <p className="summary">{procedure.observations || "Sem observacoes."}</p>
+                  <p className="summary">{procedure.observations || "Sem observações."}</p>
                   {procedure.photos.length ? (
                     <div className="photo-grid">
                       {procedure.photos.map((photo) => (
@@ -1036,7 +1036,7 @@ export function PatientDetailsPage({
 
       {activeTab === "fotos" ? (
         <section className="section page-grid">
-          <CrudPanel title="Galeria de evolucao" subtitle="Fotos vinculadas ao paciente e aos procedimentos">
+          <CrudPanel title="Galeria de evolução" subtitle="Fotos vinculadas ao paciente e aos procedimentos">
             <div className="toolbar">
               <div className="segmented-control">
                 <button
@@ -1072,7 +1072,7 @@ export function PatientDetailsPage({
             </div>
           </CrudPanel>
 
-          <CrudPanel title="Comparador Antes x Depois" subtitle="Comparacao visual quando disponivel">
+          <CrudPanel title="Comparador Antes x Depois" subtitle="Comparação visual quando disponível">
             <div className="form-grid form-grid-2">
               <label>
                 <span>Foto Antes</span>
@@ -1119,7 +1119,7 @@ export function PatientDetailsPage({
 
       {activeTab === "arquivos" ? (
         <section className="section page-grid">
-          <CrudPanel title={fileEditingId ? "Editar arquivo" : "Upload de arquivos"} subtitle="Arquivos gerais do paciente">
+          <CrudPanel title={fileEditingId ? "Editar arquivo" : "Envio de arquivos"} subtitle="Arquivos gerais do paciente">
             <form className="crud-form" onSubmit={submitPatientFiles}>
               <div className="form-grid form-grid-2">
                 <label>
@@ -1133,7 +1133,7 @@ export function PatientDetailsPage({
                   </select>
                 </label>
                 <label>
-                  <span>Descricao</span>
+                  <span>Descrição</span>
                   <input
                     value={fileForm.description}
                     onChange={(event) => setFileForm({ ...fileForm, description: event.target.value })}
@@ -1182,7 +1182,7 @@ export function PatientDetailsPage({
             </form>
           </CrudPanel>
 
-          <CrudPanel title="Arquivos do paciente" subtitle="Preview, download e organizacao">
+          <CrudPanel title="Arquivos do paciente" subtitle="Pré-visualização, baixar e organizar">
             <div className="stack">
               {patientGeneralFiles.map((fileRecord) => (
                 <article key={fileRecord.id} className="history-card">
@@ -1227,7 +1227,7 @@ export function PatientDetailsPage({
                       </button>
                     </div>
                   </div>
-                  <p className="summary">{fileRecord.description || "Sem descricao."}</p>
+                  <p className="summary">{fileRecord.description || "Sem descrição."}</p>
                 </article>
               ))}
             </div>
