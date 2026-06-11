@@ -279,10 +279,12 @@ async function saveClinicData(data: PersistedClinicData) {
   const response = await fetch("/api/clinic", {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
+    cache: "no-store",
     body: JSON.stringify(data)
   });
 
   if (!response.ok) throw new Error("Nao foi possivel salvar os dados.");
+  return normalizeClinicData((await response.json()) as PersistedClinicData);
 }
 
 export function useClinicData() {
@@ -291,7 +293,7 @@ export function useClinicData() {
   useEffect(() => {
     let isMounted = true;
 
-    fetch("/api/clinic")
+    fetch("/api/clinic", { cache: "no-store" })
       .then((response) => {
         if (!response.ok) throw new Error("Nao foi possivel carregar os dados.");
         return response.json() as Promise<PersistedClinicData>;
@@ -312,7 +314,9 @@ export function useClinicData() {
   const setPersistedData = (updater: (current: PersistedClinicData) => PersistedClinicData) => {
     setData((current) => {
       const next = withSyncedFinancialEntries(updater(current));
-      void saveClinicData(next).catch((error) => console.error(error));
+      void saveClinicData(next)
+        .then((savedData) => setData(withSyncedFinancialEntries(savedData)))
+        .catch((error) => console.error(error));
       return next;
     });
   };

@@ -15,6 +15,7 @@ if (process.env.NODE_ENV !== "production") {
 function json(res, status, payload) {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json");
+  res.setHeader("Cache-Control", "no-store, max-age=0");
   res.end(JSON.stringify(payload));
 }
 
