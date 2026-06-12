@@ -95,7 +95,7 @@ function AuthenticatedRoutes({ onLogout }: { onLogout: () => void }) {
               procedures={clinicData.procedures}
               patientFiles={clinicData.patientFiles}
               professionals={clinicData.professionals}
-              appointments={clinicData.appointments}
+              medicalRecords={clinicData.medicalRecords}
               isLoadingHistory={clinicData.isLoading}
               historyError={clinicData.loadError}
               createAnamnesis={clinicData.createAnamnesis}
@@ -120,9 +120,11 @@ function AuthenticatedRoutes({ onLogout }: { onLogout: () => void }) {
               patients={clinicData.patients}
               professionals={clinicData.professionals}
               appointments={clinicData.appointments}
+              medicalRecords={clinicData.medicalRecords}
               createAppointment={clinicData.createAppointment}
               updateAppointment={clinicData.updateAppointment}
               deleteAppointment={clinicData.deleteAppointment}
+              createMedicalRecord={clinicData.createMedicalRecord}
             />
           }
         />

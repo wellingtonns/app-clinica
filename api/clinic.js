@@ -200,6 +200,27 @@ const patientFileSelect = {
   file: true
 };
 
+const medicalRecordSelect = {
+  id: true,
+  patientId: true,
+  appointmentId: true,
+  professionalId: true,
+  date: true,
+  scheduledTime: true,
+  status: true,
+  procedure: true,
+  startedAt: true,
+  finishedAt: true,
+  durationMinutes: true,
+  clinicalNotes: true,
+  recommendations: true,
+  productsUsed: true,
+  nextReturn: true,
+  evolution: true,
+  createdAt: true,
+  updatedAt: true
+};
+
 function paymentFromAppointment(appointment) {
   const status = appointment.paymentStatus ?? "Pendente";
   const paidAmount = status === "Pago" ? appointment.price : status === "Parcial" ? appointment.paidAmount ?? 0 : 0;
@@ -267,6 +288,7 @@ async function loadClinicStateFromDatabase() {
     procedures,
     patientFiles,
     appointments,
+    medicalRecords,
     financialEntries
   ] = await Promise.all([
     prisma.patient.findMany({ select: patientSelect, orderBy: { fullName: "asc" } }),
@@ -277,6 +299,7 @@ async function loadClinicStateFromDatabase() {
     prisma.procedureRecord.findMany({ select: procedureSelect, orderBy: [{ date: "desc" }, { name: "asc" }] }),
     prisma.patientFileRecord.findMany({ select: patientFileSelect, orderBy: { id: "asc" } }),
     prisma.appointment.findMany({ select: appointmentSelect, orderBy: [{ date: "asc" }, { time: "asc" }] }),
+    prisma.medicalRecord.findMany({ select: medicalRecordSelect, orderBy: [{ date: "desc" }, { startedAt: "desc" }] }),
     prisma.financialEntry.findMany({ select: financialEntrySelect, orderBy: [{ date: "desc" }, { description: "asc" }] })
   ]);
 
@@ -292,6 +315,11 @@ async function loadClinicStateFromDatabase() {
     })),
     patientFiles,
     appointments,
+    medicalRecords: medicalRecords.map((record) => ({
+      ...record,
+      appointmentId: record.appointmentId ?? undefined,
+      professionalId: record.professionalId ?? undefined
+    })),
     financialEntries
   };
 }
@@ -323,11 +351,13 @@ async function replaceClinicState(state) {
   const contracts = toArray(state.contracts);
   const procedures = toArray(state.procedures);
   const patientFiles = toArray(state.patientFiles);
+  const medicalRecords = toArray(state.medicalRecords);
 
   await prisma.$transaction(async (tx) => {
     await tx.stockMovement.deleteMany();
     await tx.financialEntry.deleteMany();
     await tx.payment.deleteMany();
+    await tx.medicalRecord.deleteMany();
     await tx.appointment.deleteMany();
     await tx.patientFileRecord.deleteMany();
     await tx.procedureRecord.deleteMany();
@@ -413,6 +443,30 @@ async function replaceClinicState(state) {
       patientFiles.map((record) => ({
         ...record,
         file: record.file ?? {}
+      }))
+    );
+    await createMany(
+      tx,
+      "medicalRecord",
+      medicalRecords.map((record) => ({
+        id: record.id,
+        patientId: record.patientId,
+        appointmentId: record.appointmentId ?? null,
+        professionalId: record.professionalId ?? null,
+        date: record.date,
+        scheduledTime: record.scheduledTime ?? "",
+        status: record.status ?? "Finalizado",
+        procedure: record.procedure ?? "",
+        startedAt: record.startedAt ?? "",
+        finishedAt: record.finishedAt ?? "",
+        durationMinutes: record.durationMinutes ?? null,
+        clinicalNotes: record.clinicalNotes ?? "",
+        recommendations: record.recommendations ?? "",
+        productsUsed: record.productsUsed ?? "",
+        nextReturn: record.nextReturn ?? "",
+        evolution: record.evolution ?? "",
+        createdAt: record.createdAt,
+        updatedAt: record.updatedAt
       }))
     );
   });

@@ -50,6 +50,16 @@ export interface Patient {
   status: PatientStatus;
   createdAt: string;
   updatedAt: string;
+  time?: string;
+  notes?: string;
+  attendanceStartedAt?: string;
+  attendanceFinishedAt?: string;
+  attendanceDurationMinutes?: number;
+  attendanceProcedureDescription?: string;
+  attendanceProductsUsed?: string;
+  attendanceClinicalNotes?: string;
+  attendancePostProcedureRecommendations?: string;
+  attendanceNextReturn?: string;
 }
 
 export interface Product {
@@ -148,6 +158,37 @@ export interface PatientFileRecord {
   file: StoredAsset;
 }
 
+export interface MedicalRecord {
+  id: string;
+  patientId: string;
+  appointmentId?: string;
+  professionalId: string;
+  date: string;
+  scheduledTime?: string;
+  status: AppointmentStatus;
+  procedure: string;
+  startedAt: string;
+  finishedAt: string;
+  durationMinutes?: number;
+  clinicalNotes: string;
+  recommendations: string;
+  productsUsed: string;
+  nextReturn: string;
+  evolution: string;
+  createdAt: string;
+  updatedAt: string;
+  time?: string;
+  notes?: string;
+  attendanceStartedAt?: string;
+  attendanceFinishedAt?: string;
+  attendanceDurationMinutes?: number;
+  attendanceProcedureDescription?: string;
+  attendanceProductsUsed?: string;
+  attendanceClinicalNotes?: string;
+  attendancePostProcedureRecommendations?: string;
+  attendanceNextReturn?: string;
+}
+
 export interface Appointment {
   id: string;
   patientId: string;
@@ -222,5 +263,6 @@ export interface PersistedClinicData {
   procedures: ProcedureRecord[];
   patientFiles: PatientFileRecord[];
   appointments: Appointment[];
+  medicalRecords: MedicalRecord[];
   financialEntries: FinancialEntry[];
 }
