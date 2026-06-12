@@ -5,6 +5,7 @@ import { PatientModal } from "../components/PatientModal";
 import {
   AnamnesisRecord,
   ContractRecord,
+  MedicalRecord,
   Patient,
   ProcedureRecord,
   Professional
@@ -16,6 +17,7 @@ type Props = {
   anamneses: AnamnesisRecord[];
   contracts: ContractRecord[];
   procedures: ProcedureRecord[];
+  medicalRecords: MedicalRecord[];
   professionals: Professional[];
   createPatient: (input: Omit<Patient, "id" | "createdAt" | "updatedAt">) => string;
   updatePatient: (id: string, input: Omit<Patient, "id" | "createdAt" | "updatedAt">) => void;
@@ -40,6 +42,7 @@ export function PatientsPage({
   anamneses,
   contracts,
   procedures,
+  medicalRecords,
   professionals,
   createPatient,
   updatePatient,
@@ -61,9 +64,9 @@ export function PatientsPage({
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [selectedPatientId, setSelectedPatientId] = useState<string | null>(null);
 
-  const procedureDatesByPatient = procedures.reduce<Record<string, string>>((accumulator, procedure) => {
-    const previous = accumulator[procedure.patientId];
-    if (!previous || procedure.date > previous) accumulator[procedure.patientId] = procedure.date;
+  const attendanceDatesByPatient = [...procedures, ...medicalRecords].reduce<Record<string, string>>((accumulator, record) => {
+    const previous = accumulator[record.patientId];
+    if (!previous || record.date > previous) accumulator[record.patientId] = record.date;
     return accumulator;
   }, {});
 
@@ -82,11 +85,11 @@ export function PatientsPage({
       .sort((left, right) => {
         if (sortBy === "name") return left.fullName.localeCompare(right.fullName);
         if (sortBy === "createdAt") return right.createdAt.localeCompare(left.createdAt);
-        return (procedureDatesByPatient[right.id] || "").localeCompare(procedureDatesByPatient[left.id] || "");
+        return (attendanceDatesByPatient[right.id] || "").localeCompare(attendanceDatesByPatient[left.id] || "");
       });
 
     return result;
-  }, [patients, procedureDatesByPatient, query, sortBy, statusFilter]);
+  }, [patients, attendanceDatesByPatient, query, sortBy, statusFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredPatients.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
@@ -255,6 +258,7 @@ export function PatientsPage({
         anamneses={anamneses}
         contracts={contracts}
         procedures={procedures}
+        medicalRecords={medicalRecords}
         onClose={closeModal}
         createPatient={createPatient}
         updatePatient={updatePatient}

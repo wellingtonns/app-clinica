@@ -1184,6 +1184,7 @@ export function SchedulePage({
       {viewMedicalRecord ? (
         <AttendanceRecordViewModal
           record={viewMedicalRecord}
+          relatedRecords={medicalRecords.filter((record) => record.patientId === viewMedicalRecord.patientId)}
           patient={patients.find((item) => item.id === viewMedicalRecord.patientId)}
           professional={professionals.find((item) => item.id === viewMedicalRecord.professionalId)}
           onClose={() => setViewMedicalRecordId(null)}

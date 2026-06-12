@@ -3,6 +3,7 @@ import { formatDate, formatDateTime } from "../utils/format";
 
 type Props = {
   record: MedicalRecord;
+  relatedRecords?: MedicalRecord[];
   patient?: Patient;
   professional?: Professional;
   onClose: () => void;
@@ -39,7 +40,16 @@ function TextBlock({ label, value }: { label: string; value?: string }) {
   );
 }
 
-export function AttendanceRecordViewModal({ record, patient, professional, onClose }: Props) {
+export function AttendanceRecordViewModal({ record, relatedRecords = [], patient, professional, onClose }: Props) {
+  const previousRecords = relatedRecords
+    .filter((item) => item.patientId === record.patientId)
+    .filter((item) => item.id !== record.id)
+    .sort((left, right) =>
+      `${right.date} ${right.startedAt || right.scheduledTime}`.localeCompare(
+        `${left.date} ${left.startedAt || left.scheduledTime}`
+      )
+    );
+
   return (
     <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="medical-record-view-title">
       <div className="modal-shell attendance-record-modal-shell">
@@ -97,6 +107,30 @@ export function AttendanceRecordViewModal({ record, patient, professional, onClo
               <TextBlock label="Evolucao" value={record.evolution} />
             </div>
           </section>
+
+          {previousRecords.length ? (
+            <section className="medical-record-section">
+              <div className="medical-record-section-header">
+                <h4>Prontuarios anteriores do paciente</h4>
+                <span className="status-pill status-confirmed">{previousRecords.length} registro(s)</span>
+              </div>
+              <div className="medical-record-previous-list">
+                {previousRecords.map((previous) => (
+                  <article className="medical-record-previous-card" key={previous.id}>
+                    <div>
+                      <strong>{previous.procedure}</strong>
+                      <span>
+                        {formatDate(previous.date)} - {previous.scheduledTime || "-"} - {formatDuration(previous.durationMinutes)}
+                      </span>
+                    </div>
+                    <p>{previous.clinicalNotes || "Sem observacoes registradas."}</p>
+                    {previous.recommendations ? <small>Recomendacoes: {previous.recommendations}</small> : null}
+                    {previous.productsUsed ? <small>Produtos utilizados: {previous.productsUsed}</small> : null}
+                  </article>
+                ))}
+              </div>
+            </section>
+          ) : null}
         </div>
       </div>
     </div>
