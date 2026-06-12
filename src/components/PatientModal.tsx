@@ -1,8 +1,10 @@
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
+import { AttendanceRecordViewModal } from "./AttendanceRecordViewModal";
 import {
   AnamnesisRecord,
   BodyArea,
   ContractRecord,
+  MedicalRecord,
   Patient,
   PhotoCategory,
   ProcedurePhoto,
@@ -18,7 +20,7 @@ type PatientInput = Omit<Patient, "id" | "createdAt" | "updatedAt">;
 type AnamnesisInput = Omit<AnamnesisRecord, "id" | "version" | "createdAt" | "updatedAt">;
 type ContractInput = Omit<ContractRecord, "id" | "version" | "uploadedAt">;
 type ProcedureInput = Omit<ProcedureRecord, "id">;
-type TabKey = "dados" | "anamnese" | "contrato" | "fotos";
+type TabKey = "dados" | "historico" | "anamnese" | "contrato" | "fotos";
 
 type Props = {
   isOpen: boolean;
@@ -28,6 +30,7 @@ type Props = {
   anamneses: AnamnesisRecord[];
   contracts: ContractRecord[];
   procedures: ProcedureRecord[];
+  medicalRecords: MedicalRecord[];
   onClose: () => void;
   createPatient: (input: PatientInput) => string;
   updatePatient: (id: string, input: PatientInput) => void;
@@ -44,6 +47,7 @@ type Props = {
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: "dados", label: "Dados do Paciente" },
+  { key: "historico", label: "Histórico" },
   { key: "anamnese", label: "Anamnese" },
   { key: "contrato", label: "Contrato" },
   { key: "fotos", label: "Fotos do Paciente" }
@@ -120,6 +124,14 @@ function emptyProcedureForm(professionalId = ""): ProcedureInput {
     observations: "",
     photos: []
   };
+}
+
+function formatDuration(minutes?: number) {
+  if (!minutes) return "-";
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
 }
 
 function ContractPreview({
@@ -308,6 +320,7 @@ export function PatientModal({
   anamneses,
   contracts,
   procedures,
+  medicalRecords,
   onClose,
   createPatient,
   updatePatient,
@@ -342,6 +355,7 @@ export function PatientModal({
   const [contractZoom, setContractZoom] = useState(100);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState<number | null>(null);
   const [generatedContract, setGeneratedContract] = useState<StoredAsset | null>(null);
+  const [selectedMedicalRecordId, setSelectedMedicalRecordId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -349,6 +363,7 @@ export function PatientModal({
     setError("");
     setPatientId(patient?.id ?? null);
     setViewerAsset(null);
+    setSelectedMedicalRecordId(null);
     setSelectedPhotoIndex(null);
     setGeneratedContract(null);
     setContractZoom(100);
@@ -403,6 +418,35 @@ export function PatientModal({
     () => procedures.filter((item) => item.patientId === patientId).sort((a, b) => b.date.localeCompare(a.date)),
     [patientId, procedures]
   );
+  const oneYearAgo = useMemo(() => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() - 1);
+    return date.toISOString().slice(0, 10);
+  }, []);
+  const patientMedicalRecords = useMemo(
+    () =>
+      medicalRecords
+        .filter((record) => record.patientId === patientId)
+        .filter((record) => !record.date || record.date >= oneYearAgo)
+        .sort((left, right) =>
+          `${right.date} ${right.startedAt || right.scheduledTime}`.localeCompare(
+            `${left.date} ${left.startedAt || left.scheduledTime}`
+          )
+        ),
+    [medicalRecords, oneYearAgo, patientId]
+  );
+  const medicalRecordsByDate = useMemo(
+    () =>
+      patientMedicalRecords.reduce<Record<string, MedicalRecord[]>>((accumulator, record) => {
+        const key = record.date || "Sem data";
+        accumulator[key] = [...(accumulator[key] ?? []), record];
+        return accumulator;
+      }, {}),
+    [patientMedicalRecords]
+  );
+  const selectedMedicalRecord = selectedMedicalRecordId
+    ? patientMedicalRecords.find((record) => record.id === selectedMedicalRecordId) ?? null
+    : null;
   const currentPatientSnapshot = useMemo<Patient | null>(() => {
     if (!patientId) return null;
     return {
@@ -749,6 +793,77 @@ export function PatientModal({
                   <span>Observações gerais</span>
                   <textarea rows={4} value={patientForm.generalObservations} onChange={(event) => setPatientForm({ ...patientForm, generalObservations: event.target.value })} />
                 </label>
+              </div>
+            ) : null}
+
+            {activeTab === "historico" ? (
+              <div className="crud-form">
+                <div className="history-card">
+                  <div className="panel-header">
+                    <div>
+                      <h4>Histórico de Atendimentos</h4>
+                      <p>Prontuários e procedimentos finalizados nos últimos 12 meses.</p>
+                    </div>
+                    <span className="status-pill status-confirmed">{patientMedicalRecords.length} registro(s)</span>
+                  </div>
+                  {patientMedicalRecords.length ? (
+                    <div className="patient-modal-history-timeline">
+                      {Object.entries(medicalRecordsByDate).map(([date, records]) => (
+                        <section className="patient-modal-history-day" key={date}>
+                          <div className="patient-modal-history-date">
+                            <strong>{date === "Sem data" ? date : formatDate(date)}</strong>
+                            <span>{records.length} atendimento(s)</span>
+                          </div>
+                          <div className="appointment-history-list">
+                            {records.map((record) => (
+                              <article className="appointment-history-card" key={record.id}>
+                                <div className="appointment-history-card-header">
+                                  <div>
+                                    <strong>{record.procedure}</strong>
+                                    <span>
+                                      {record.scheduledTime || "-"} |{" "}
+                                      {record.professionalId
+                                        ? professionals.find((professional) => professional.id === record.professionalId)?.name ??
+                                          "Profissional nao informado"
+                                        : "Profissional nao informado"}
+                                    </span>
+                                  </div>
+                                  <button
+                                    className="inline-button"
+                                    type="button"
+                                    onClick={() => setSelectedMedicalRecordId(record.id)}
+                                  >
+                                    Ver prontuário
+                                  </button>
+                                </div>
+                                <div className="appointment-control-grid">
+                                  <div className="appointment-detail-card">
+                                    <span>Início</span>
+                                    <strong>{record.startedAt ? formatDateTime(record.startedAt) : "-"}</strong>
+                                  </div>
+                                  <div className="appointment-detail-card">
+                                    <span>Término</span>
+                                    <strong>{record.finishedAt ? formatDateTime(record.finishedAt) : "-"}</strong>
+                                  </div>
+                                  <div className="appointment-detail-card">
+                                    <span>Duração</span>
+                                    <strong>{formatDuration(record.durationMinutes)}</strong>
+                                  </div>
+                                </div>
+                                <p className="summary">{record.clinicalNotes || "Sem observações registradas."}</p>
+                                {record.recommendations ? <small>Recomendações: {record.recommendations}</small> : null}
+                                {record.productsUsed ? <small>Produtos utilizados: {record.productsUsed}</small> : null}
+                                <small>Agendamento relacionado: {record.appointmentId || "Sem referência"}</small>
+                              </article>
+                            ))}
+                          </div>
+                        </section>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="empty-state">Nenhum atendimento finalizado armazenado para este paciente no último ano.</div>
+                  )}
+                </div>
               </div>
             ) : null}
 
@@ -1305,6 +1420,15 @@ export function PatientModal({
           </div>
         </div>
       </div>
+
+      {selectedMedicalRecord ? (
+        <AttendanceRecordViewModal
+          record={selectedMedicalRecord}
+          patient={currentPatientSnapshot ?? undefined}
+          professional={professionals.find((professional) => professional.id === selectedMedicalRecord.professionalId)}
+          onClose={() => setSelectedMedicalRecordId(null)}
+        />
+      ) : null}
 
       <AssetViewerModal
         asset={viewerAsset}

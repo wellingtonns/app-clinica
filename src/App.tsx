@@ -69,6 +69,7 @@ function AuthenticatedRoutes({ onLogout }: { onLogout: () => void }) {
               anamneses={clinicData.anamneses}
               contracts={clinicData.contracts}
               procedures={clinicData.procedures}
+              medicalRecords={clinicData.medicalRecords}
               professionals={clinicData.professionals}
               createPatient={clinicData.createPatient}
               updatePatient={clinicData.updatePatient}
