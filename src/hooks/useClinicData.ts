@@ -431,6 +431,7 @@ export function useClinicData() {
   const initialData = readCachedClinicData();
   const [data, setData] = useState<PersistedClinicData>(initialData ?? emptyClinicData);
   const [isLoading, setIsLoading] = useState(!initialData);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -441,10 +442,14 @@ export function useClinicData() {
         if (!isMounted || clinicDataVersion !== requestedVersion) return;
         writeCachedClinicData(freshData);
         setData(freshData);
+        setLoadError(null);
       })
       .catch((error) => {
         console.error(error);
-        if (isMounted && !readCachedClinicData()) setData(emptyClinicData);
+        if (isMounted) {
+          setLoadError("Não foi possível carregar os dados da clínica.");
+          if (!readCachedClinicData()) setData(emptyClinicData);
+        }
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);
@@ -467,6 +472,7 @@ export function useClinicData() {
 
   return {
     isLoading,
+    loadError,
     patients: data.patients,
     products: data.products,
     professionals: data.professionals,

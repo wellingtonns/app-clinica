@@ -1228,14 +1228,88 @@ th {
   gap: 0.6rem;
 }
 
+.appointment-history-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .appointment-history-card > div {
   display: grid;
   gap: 0.25rem;
 }
 
+.appointment-history-card > .appointment-history-card-header {
+  display: flex;
+}
+
 .appointment-evolution-form textarea {
   min-height: 96px;
   resize: vertical;
+}
+
+.medical-record-view,
+.medical-record-section,
+.medical-record-text-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.medical-record-section {
+  padding: 1rem;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.medical-record-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.medical-record-section-header h4 {
+  margin: 0;
+}
+
+.medical-record-detail-grid,
+.medical-record-text-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.medical-record-detail-item,
+.medical-record-text-block {
+  padding: 0.9rem;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  background: rgba(255, 250, 248, 0.78);
+}
+
+.medical-record-detail-item span,
+.medical-record-text-block span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.medical-record-detail-item strong,
+.medical-record-text-block p {
+  color: var(--text);
+}
+
+.medical-record-text-block p {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.compact-medical-record-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
 }
 
 .form-success {
@@ -1888,7 +1962,10 @@ th {
 
   .appointment-details-tabs,
   .appointment-detail-grid,
-  .appointment-control-grid {
+  .appointment-control-grid,
+  .medical-record-detail-grid,
+  .medical-record-text-grid,
+  .compact-medical-record-grid {
     grid-template-columns: 1fr;
   }
 
