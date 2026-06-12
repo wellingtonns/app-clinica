@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
-import { CalendarX, CheckCircle2, PlayCircle, Save } from "lucide-react";
+import { CalendarX, CheckCircle2, ClipboardList, PlayCircle, Save } from "lucide-react";
+import { AttendanceRecordViewModal } from "../components/AttendanceRecordViewModal";
 import { CrudPanel } from "../components/CrudPanel";
 import { PageTopbar } from "../components/PageTopbar";
 import { Appointment, AppointmentStatus, FinancialStatus, Patient, Professional } from "../types";
@@ -273,6 +274,7 @@ export function SchedulePage({
   const [referenceDate, setReferenceDate] = useState(getTodayIso());
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [recordAppointmentId, setRecordAppointmentId] = useState<string | null>(null);
+  const [viewRecordAppointmentId, setViewRecordAppointmentId] = useState<string | null>(null);
   const [recordForm, setRecordForm] = useState({
     attendanceClinicalNotes: "",
     attendanceProcedureDescription: "",
@@ -499,6 +501,9 @@ export function SchedulePage({
   const recordAppointment = recordAppointmentId
     ? appointments.find((appointment) => appointment.id === recordAppointmentId)
     : undefined;
+  const viewRecordAppointment = viewRecordAppointmentId
+    ? appointments.find((appointment) => appointment.id === viewRecordAppointmentId)
+    : undefined;
 
   const startAttendance = (appointment: Appointment) => {
     try {
@@ -674,6 +679,16 @@ export function SchedulePage({
                           >
                             <CheckCircle2 aria-hidden="true" size={16} />
                             Finalizar atendimento
+                          </button>
+                        ) : null}
+                        {appointment.status === "Finalizado" ? (
+                          <button
+                            className="inline-button icon-text-button"
+                            type="button"
+                            onClick={() => setViewRecordAppointmentId(appointment.id)}
+                          >
+                            <ClipboardList aria-hidden="true" size={16} />
+                            Ver prontuário
                           </button>
                         ) : null}
                         <button
@@ -1077,6 +1092,15 @@ export function SchedulePage({
             </form>
           </div>
         </div>
+      ) : null}
+
+      {viewRecordAppointment ? (
+        <AttendanceRecordViewModal
+          appointment={viewRecordAppointment}
+          patient={patients.find((item) => item.id === viewRecordAppointment.patientId)}
+          professional={professionals.find((item) => item.id === viewRecordAppointment.professionalId)}
+          onClose={() => setViewRecordAppointmentId(null)}
+        />
       ) : null}
     </>
   );

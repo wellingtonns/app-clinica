@@ -1,5 +1,6 @@
 import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import { Link, Navigate, useParams, useSearchParams } from "react-router-dom";
+import { AttendanceRecordViewModal } from "../components/AttendanceRecordViewModal";
 import { CrudPanel } from "../components/CrudPanel";
 import { PageTopbar } from "../components/PageTopbar";
 import {
@@ -26,6 +27,8 @@ type Props = {
   patientFiles: PatientFileRecord[];
   professionals: Professional[];
   appointments: Appointment[];
+  isLoadingHistory?: boolean;
+  historyError?: string | null;
   createAnamnesis: (input: Omit<AnamnesisRecord, "id" | "version" | "createdAt" | "updatedAt">) => void;
   updateAnamnesis: (id: string, input: Omit<AnamnesisRecord, "id" | "version" | "createdAt" | "updatedAt">) => void;
   deleteAnamnesis: (id: string) => void;
@@ -164,6 +167,8 @@ export function PatientDetailsPage({
   patientFiles,
   professionals,
   appointments,
+  isLoadingHistory = false,
+  historyError = null,
   createAnamnesis,
   updateAnamnesis,
   deleteAnamnesis,
@@ -242,6 +247,11 @@ export function PatientDetailsPage({
   const [photoFilter, setPhotoFilter] = useState<PhotoCategory | "Todas">("Todas");
   const [beforePhotoId, setBeforePhotoId] = useState("");
   const [afterPhotoId, setAfterPhotoId] = useState("");
+  const [selectedAttendanceRecordId, setSelectedAttendanceRecordId] = useState<string | null>(null);
+
+  if (!patient && isLoadingHistory) {
+    return <div className="empty-state">Carregando dados do paciente...</div>;
+  }
 
   if (!patient) {
     return <Navigate to="/pacientes" replace />;
@@ -257,6 +267,8 @@ export function PatientDetailsPage({
   const afterPhotoOptions = allProcedurePhotos.filter((photo) => photo.category === "Depois");
   const beforePhoto = beforePhotoOptions.find((photo) => photo.id === beforePhotoId) ?? null;
   const afterPhoto = afterPhotoOptions.find((photo) => photo.id === afterPhotoId) ?? null;
+  const selectedAttendanceRecord =
+    patientAttendanceRecords.find((appointment) => appointment.id === selectedAttendanceRecordId) ?? null;
 
   const setTab = (tab: TabKey) => setSearchParams({ tab });
 
@@ -457,7 +469,11 @@ export function PatientDetailsPage({
       {activeTab === "prontuarios" ? (
         <section className="section">
           <CrudPanel title="Histórico de atendimentos" subtitle="Prontuários vinculados aos agendamentos deste paciente">
-            {patientAttendanceRecords.length > 0 ? (
+            {historyError ? (
+              <div className="feedback-message feedback-error">{historyError}</div>
+            ) : isLoadingHistory ? (
+              <div className="empty-state">Carregando histórico de atendimentos...</div>
+            ) : patientAttendanceRecords.length > 0 ? (
               <div className="appointment-history-list">
                 {patientAttendanceRecords.map((appointment) => (
                   <article className="appointment-history-card" key={appointment.id}>
@@ -487,6 +503,12 @@ export function PatientDetailsPage({
                       </div>
                     </div>
                     <p>{appointment.attendanceClinicalNotes || appointment.notes || "Sem observações registradas."}</p>
+                    <div className="medical-record-text-grid compact-medical-record-grid">
+                      <TextSummary label="Status" value={appointment.status} />
+                      <TextSummary label="Procedimento realizado" value={appointment.attendanceProcedureDescription || appointment.procedure} />
+                      <TextSummary label="Observações do prontuário" value={appointment.attendanceClinicalNotes || appointment.notes} />
+                      <TextSummary label="Recomendações" value={appointment.attendancePostProcedureRecommendations} />
+                    </div>
                     {appointment.attendanceProductsUsed ? (
                       <small>Produtos utilizados: {appointment.attendanceProductsUsed}</small>
                     ) : null}
@@ -497,6 +519,15 @@ export function PatientDetailsPage({
                       <small>Próximo retorno: {appointment.attendanceNextReturn}</small>
                     ) : null}
                     <small>Agendamento relacionado: {appointment.id}</small>
+                    <div className="form-actions">
+                      <button
+                        className="inline-button"
+                        type="button"
+                        onClick={() => setSelectedAttendanceRecordId(appointment.id)}
+                      >
+                        Ver detalhes
+                      </button>
+                    </div>
                   </article>
                 ))}
               </div>
@@ -1317,6 +1348,24 @@ export function PatientDetailsPage({
           </CrudPanel>
         </section>
       ) : null}
+
+      {selectedAttendanceRecord ? (
+        <AttendanceRecordViewModal
+          appointment={selectedAttendanceRecord}
+          patient={patient}
+          professional={professionals.find((item) => item.id === selectedAttendanceRecord.professionalId)}
+          onClose={() => setSelectedAttendanceRecordId(null)}
+        />
+      ) : null}
     </>
+  );
+}
+
+function TextSummary({ label, value }: { label: string; value?: string }) {
+  return (
+    <div className="medical-record-text-block">
+      <span>{label}</span>
+      <p>{value?.trim() || "-"}</p>
+    </div>
   );
 }
