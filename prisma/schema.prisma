@@ -86,6 +86,15 @@ model Appointment {
   notes            String  @default("")
   price            Float   @default(0)
   history          Json    @default("[]")
+  attendanceStartedAt                    String @default("")
+  attendanceFinishedAt                   String @default("")
+  attendanceDurationMinutes              Int?
+  attendanceProcedureDescription         String @default("")
+  attendanceProductsUsed                 String @default("")
+  attendanceClinicalNotes                String @default("")
+  attendancePostProcedureRecommendations String @default("")
+  attendanceNextReturn                   String @default("")
+  attendanceEvolution                    String @default("")
 
   patient          Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
   professional     Professional     @relation(fields: [professionalId], references: [id], onDelete: Cascade)

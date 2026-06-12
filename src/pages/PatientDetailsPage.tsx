@@ -4,6 +4,7 @@ import { CrudPanel } from "../components/CrudPanel";
 import { PageTopbar } from "../components/PageTopbar";
 import {
   AnamnesisRecord,
+  Appointment,
   ContractRecord,
   FileCategory,
   Patient,
@@ -24,6 +25,7 @@ type Props = {
   procedures: ProcedureRecord[];
   patientFiles: PatientFileRecord[];
   professionals: Professional[];
+  appointments: Appointment[];
   createAnamnesis: (input: Omit<AnamnesisRecord, "id" | "version" | "createdAt" | "updatedAt">) => void;
   updateAnamnesis: (id: string, input: Omit<AnamnesisRecord, "id" | "version" | "createdAt" | "updatedAt">) => void;
   deleteAnamnesis: (id: string) => void;
@@ -38,7 +40,7 @@ type Props = {
   deletePatientFile: (id: string) => void;
 };
 
-type TabKey = "resumo" | "anamnese" | "contrato" | "procedimentos" | "fotos" | "arquivos";
+type TabKey = "resumo" | "prontuarios" | "anamnese" | "contrato" | "procedimentos" | "fotos" | "arquivos";
 
 type AnamnesisForm = Omit<AnamnesisRecord, "id" | "patientId" | "version" | "createdAt" | "updatedAt">;
 type ContractForm = {
@@ -63,6 +65,7 @@ type FileForm = {
 
 const tabs: { key: TabKey; label: string }[] = [
   { key: "resumo", label: "Resumo" },
+  { key: "prontuarios", label: "Prontuários" },
   { key: "anamnese", label: "Anamnese" },
   { key: "contrato", label: "Contrato" },
   { key: "procedimentos", label: "Procedimentos" },
@@ -122,6 +125,14 @@ const emptyFileForm: FileForm = {
   assets: []
 };
 
+function formatDuration(minutes?: number) {
+  if (!minutes) return "-";
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes ? `${hours}h ${remainingMinutes}min` : `${hours}h`;
+}
+
 function AssetPreview({ asset }: { asset: StoredAsset | null }) {
   if (!asset) {
     return <div className="empty-state">Selecione um arquivo para visualizar.</div>;
@@ -152,6 +163,7 @@ export function PatientDetailsPage({
   procedures,
   patientFiles,
   professionals,
+  appointments,
   createAnamnesis,
   updateAnamnesis,
   deleteAnamnesis,
@@ -183,6 +195,20 @@ export function PatientDetailsPage({
   const patientGeneralFiles = patientFiles
     .filter((item) => item.patientId === patientId)
     .sort((left, right) => right.file.uploadedAt.localeCompare(left.file.uploadedAt));
+  const patientAttendanceRecords = appointments
+    .filter((item) => item.patientId === patientId)
+    .filter(
+      (item) =>
+        item.status === "Finalizado" ||
+        item.status === "Concluído" ||
+        item.status === "Realizado" ||
+        Boolean(item.attendanceClinicalNotes || item.attendanceProcedureDescription || item.attendanceStartedAt)
+    )
+    .sort((left, right) =>
+      `${right.attendanceStartedAt || right.date} ${right.time}`.localeCompare(
+        `${left.attendanceStartedAt || left.date} ${left.time}`
+      )
+    );
 
   const allProcedurePhotos = patientProcedures.flatMap((procedure) =>
     procedure.photos.map((photo) => ({
@@ -416,10 +442,67 @@ export function PatientDetailsPage({
                 <span>{patientProcedures.length} item(ns)</span>
               </div>
               <div className="list-card">
+                <strong>Prontuários</strong>
+                <span>{patientAttendanceRecords.length} atendimento(s)</span>
+              </div>
+              <div className="list-card">
                 <strong>Arquivos gerais</strong>
                 <span>{patientGeneralFiles.length} arquivo(s)</span>
               </div>
             </div>
+          </CrudPanel>
+        </section>
+      ) : null}
+
+      {activeTab === "prontuarios" ? (
+        <section className="section">
+          <CrudPanel title="Histórico de atendimentos" subtitle="Prontuários vinculados aos agendamentos deste paciente">
+            {patientAttendanceRecords.length > 0 ? (
+              <div className="appointment-history-list">
+                {patientAttendanceRecords.map((appointment) => (
+                  <article className="appointment-history-card" key={appointment.id}>
+                    <div>
+                      <strong>{appointment.attendanceProcedureDescription || appointment.procedure}</strong>
+                      <span>
+                        {formatDate(appointment.date)} · {appointment.time} ·{" "}
+                        {professionalNameById.get(appointment.professionalId) ?? "Profissional não informado"}
+                      </span>
+                    </div>
+                    <div className="appointment-control-grid">
+                      <div className="appointment-detail-card">
+                        <span>Início</span>
+                        <strong>
+                          {appointment.attendanceStartedAt ? formatDateTime(appointment.attendanceStartedAt) : "-"}
+                        </strong>
+                      </div>
+                      <div className="appointment-detail-card">
+                        <span>Término</span>
+                        <strong>
+                          {appointment.attendanceFinishedAt ? formatDateTime(appointment.attendanceFinishedAt) : "-"}
+                        </strong>
+                      </div>
+                      <div className="appointment-detail-card">
+                        <span>Tempo total</span>
+                        <strong>{formatDuration(appointment.attendanceDurationMinutes)}</strong>
+                      </div>
+                    </div>
+                    <p>{appointment.attendanceClinicalNotes || appointment.notes || "Sem observações registradas."}</p>
+                    {appointment.attendanceProductsUsed ? (
+                      <small>Produtos utilizados: {appointment.attendanceProductsUsed}</small>
+                    ) : null}
+                    {appointment.attendancePostProcedureRecommendations ? (
+                      <small>Recomendações: {appointment.attendancePostProcedureRecommendations}</small>
+                    ) : null}
+                    {appointment.attendanceNextReturn ? (
+                      <small>Próximo retorno: {appointment.attendanceNextReturn}</small>
+                    ) : null}
+                    <small>Agendamento relacionado: {appointment.id}</small>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="empty-state">Nenhum prontuário encontrado para este paciente.</div>
+            )}
           </CrudPanel>
         </section>
       ) : null}

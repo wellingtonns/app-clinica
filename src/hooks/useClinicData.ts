@@ -152,6 +152,9 @@ function normalizeAppointmentStatus(rawStatus: unknown): AppointmentStatus {
     rawStatus === "Confirmado" ||
     rawStatus === "Desmarcado" ||
     rawStatus === "Realizado" ||
+    rawStatus === "Em atendimento" ||
+    rawStatus === "Finalizado" ||
+    rawStatus === "Concluído" ||
     rawStatus === "Cancelado"
   ) {
     return rawStatus;
@@ -185,7 +188,16 @@ function normalizeAppointment(raw: Partial<Appointment>): Appointment {
     installments: raw.installments,
     notes: raw.notes ?? "",
     price: raw.price ?? 0,
-    history: Array.isArray(raw.history) ? raw.history : []
+    history: Array.isArray(raw.history) ? raw.history : [],
+    attendanceStartedAt: raw.attendanceStartedAt ?? "",
+    attendanceFinishedAt: raw.attendanceFinishedAt ?? "",
+    attendanceDurationMinutes: raw.attendanceDurationMinutes,
+    attendanceProcedureDescription: raw.attendanceProcedureDescription ?? "",
+    attendanceProductsUsed: raw.attendanceProductsUsed ?? "",
+    attendanceClinicalNotes: raw.attendanceClinicalNotes ?? "",
+    attendancePostProcedureRecommendations: raw.attendancePostProcedureRecommendations ?? "",
+    attendanceNextReturn: raw.attendanceNextReturn ?? "",
+    attendanceEvolution: raw.attendanceEvolution ?? ""
   };
 }
 

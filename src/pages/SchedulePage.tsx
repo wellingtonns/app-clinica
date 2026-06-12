@@ -1,5 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
-import { CalendarX } from "lucide-react";
+import { CalendarX, CheckCircle2, PlayCircle, Save } from "lucide-react";
 import { CrudPanel } from "../components/CrudPanel";
 import { PageTopbar } from "../components/PageTopbar";
 import { Appointment, AppointmentStatus, FinancialStatus, Patient, Professional } from "../types";
@@ -16,11 +16,11 @@ type Props = {
 
 type ViewMode = "Diária" | "Semanal";
 
-const statusOptions: AppointmentStatus[] = ["Agendado", "Confirmado", "Desmarcado", "Realizado", "Cancelado"];
+const statusOptions: AppointmentStatus[] = ["Agendado", "Confirmado", "Em atendimento", "Finalizado", "Concluído", "Realizado", "Desmarcado", "Cancelado"];
 const paymentStatusOptions: FinancialStatus[] = ["Pendente", "Pago", "Parcial", "Cancelado"];
 const paymentMethodOptions = ["Pix", "Cartão de débito", "Cartão de crédito", "Dinheiro"];
 const currentUserName = "Administradora";
-const blockingStatuses: AppointmentStatus[] = ["Agendado", "Confirmado", "Realizado"];
+const blockingStatuses: AppointmentStatus[] = ["Agendado", "Confirmado", "Em atendimento", "Finalizado", "Concluído", "Realizado"];
 const businessStartMinutes = 8 * 60;
 const businessEndMinutes = 19 * 60;
 const slotIntervalMinutes = 30;
@@ -39,7 +39,16 @@ const emptyForm: Omit<Appointment, "id"> = {
   paidAmount: 0,
   installments: undefined,
   notes: "",
-  price: 0
+  price: 0,
+  attendanceStartedAt: "",
+  attendanceFinishedAt: "",
+  attendanceDurationMinutes: undefined,
+  attendanceProcedureDescription: "",
+  attendanceProductsUsed: "",
+  attendanceClinicalNotes: "",
+  attendancePostProcedureRecommendations: "",
+  attendanceNextReturn: "",
+  attendanceEvolution: ""
 };
 
 function getTodayIso() {
@@ -68,11 +77,34 @@ function createHistoryEntry(
 }
 
 function getStatusClass(status: AppointmentStatus) {
-  return `appointment-status appointment-status-${status.toLowerCase()}`;
+  const slug = status
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "-");
+  return `appointment-status appointment-status-${slug}`;
+}
+
+function appointmentInput(appointment: Appointment): Omit<Appointment, "id"> {
+  const { id: _id, ...input } = appointment;
+  return input;
+}
+
+function calculateDurationMinutes(startedAt?: string, finishedAt?: string) {
+  if (!startedAt || !finishedAt) return undefined;
+  const started = new Date(startedAt).getTime();
+  const finished = new Date(finishedAt).getTime();
+  if (Number.isNaN(started) || Number.isNaN(finished) || finished < started) return undefined;
+  return Math.max(1, Math.round((finished - started) / 60000));
 }
 
 function getAppointmentRowClass(appointment: Appointment) {
-  return appointment.isRescheduled ? "appointment-row appointment-row-remarcado" : `appointment-row appointment-row-${appointment.status.toLowerCase()}`;
+  const slug = appointment.status
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "-");
+  return appointment.isRescheduled ? "appointment-row appointment-row-remarcado" : `appointment-row appointment-row-${slug}`;
 }
 
 function timeToMinutes(value: string) {
@@ -240,6 +272,14 @@ export function SchedulePage({
   const [viewMode, setViewMode] = useState<ViewMode>("Diária");
   const [referenceDate, setReferenceDate] = useState(getTodayIso());
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
+  const [recordAppointmentId, setRecordAppointmentId] = useState<string | null>(null);
+  const [recordForm, setRecordForm] = useState({
+    attendanceClinicalNotes: "",
+    attendanceProcedureDescription: "",
+    attendancePostProcedureRecommendations: "",
+    attendanceProductsUsed: "",
+    attendanceNextReturn: ""
+  });
   const [form, setForm] = useState<Omit<Appointment, "id">>({
     ...emptyForm,
     patientId: patients[0]?.id ?? "",
@@ -309,7 +349,16 @@ export function SchedulePage({
       originalTime: appointment.originalTime,
       rescheduleReason: appointment.rescheduleReason,
       isRescheduled: appointment.isRescheduled,
-      history: appointment.history ?? []
+      history: appointment.history ?? [],
+      attendanceStartedAt: appointment.attendanceStartedAt ?? "",
+      attendanceFinishedAt: appointment.attendanceFinishedAt ?? "",
+      attendanceDurationMinutes: appointment.attendanceDurationMinutes,
+      attendanceProcedureDescription: appointment.attendanceProcedureDescription ?? "",
+      attendanceProductsUsed: appointment.attendanceProductsUsed ?? "",
+      attendanceClinicalNotes: appointment.attendanceClinicalNotes ?? "",
+      attendancePostProcedureRecommendations: appointment.attendancePostProcedureRecommendations ?? "",
+      attendanceNextReturn: appointment.attendanceNextReturn ?? "",
+      attendanceEvolution: appointment.attendanceEvolution ?? ""
     });
     setIsModalOpen(true);
   };
@@ -447,6 +496,94 @@ export function SchedulePage({
     }
   };
 
+  const recordAppointment = recordAppointmentId
+    ? appointments.find((appointment) => appointment.id === recordAppointmentId)
+    : undefined;
+
+  const startAttendance = (appointment: Appointment) => {
+    try {
+      updateAppointment(appointment.id, {
+        ...appointmentInput(appointment),
+        status: "Em atendimento",
+        attendanceStartedAt: appointment.attendanceStartedAt || new Date().toISOString(),
+        attendanceFinishedAt: "",
+        attendanceDurationMinutes: undefined
+      });
+      setFeedback({ type: "success", message: "Atendimento iniciado com sucesso." });
+    } catch {
+      setFeedback({ type: "error", message: "Não foi possível iniciar o atendimento. Tente novamente." });
+    }
+  };
+
+  const openAttendanceRecord = (appointment: Appointment) => {
+    const startedAt = appointment.attendanceStartedAt || new Date().toISOString();
+    const finishedAt = new Date().toISOString();
+    const nextAppointment = {
+      ...appointment,
+      status: "Em atendimento" as AppointmentStatus,
+      attendanceStartedAt: startedAt,
+      attendanceFinishedAt: finishedAt,
+      attendanceDurationMinutes: calculateDurationMinutes(startedAt, finishedAt)
+    };
+
+    updateAppointment(appointment.id, appointmentInput(nextAppointment));
+    setRecordAppointmentId(appointment.id);
+    setRecordForm({
+      attendanceClinicalNotes: appointment.attendanceClinicalNotes ?? "",
+      attendanceProcedureDescription: appointment.attendanceProcedureDescription || appointment.procedure,
+      attendancePostProcedureRecommendations: appointment.attendancePostProcedureRecommendations ?? "",
+      attendanceProductsUsed: appointment.attendanceProductsUsed ?? "",
+      attendanceNextReturn: appointment.attendanceNextReturn ?? ""
+    });
+  };
+
+  const closeAttendanceRecord = () => {
+    setRecordAppointmentId(null);
+    setRecordForm({
+      attendanceClinicalNotes: "",
+      attendanceProcedureDescription: "",
+      attendancePostProcedureRecommendations: "",
+      attendanceProductsUsed: "",
+      attendanceNextReturn: ""
+    });
+  };
+
+  const saveAttendanceRecord = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!recordAppointment) return;
+
+    if (!recordForm.attendanceClinicalNotes.trim() || !recordForm.attendanceProcedureDescription.trim()) {
+      setFeedback({
+        type: "error",
+        message: "Informe as observações e o procedimento realizado antes de salvar o prontuário."
+      });
+      return;
+    }
+
+    const startedAt = recordAppointment.attendanceStartedAt || new Date().toISOString();
+    const finishedAt = recordAppointment.attendanceFinishedAt || new Date().toISOString();
+
+    try {
+      updateAppointment(recordAppointment.id, {
+        ...appointmentInput(recordAppointment),
+        status: "Finalizado",
+        attendanceStartedAt: startedAt,
+        attendanceFinishedAt: finishedAt,
+        attendanceDurationMinutes: calculateDurationMinutes(startedAt, finishedAt),
+        attendanceClinicalNotes: recordForm.attendanceClinicalNotes.trim(),
+        attendanceProcedureDescription: recordForm.attendanceProcedureDescription.trim(),
+        attendancePostProcedureRecommendations: recordForm.attendancePostProcedureRecommendations.trim(),
+        attendanceProductsUsed: recordForm.attendanceProductsUsed.trim(),
+        attendanceNextReturn: recordForm.attendanceNextReturn.trim(),
+        attendanceEvolution: recordForm.attendanceClinicalNotes.trim()
+      });
+      closeAttendanceRecord();
+      setFeedback({ type: "success", message: "Prontuário salvo e atendimento finalizado com sucesso." });
+    } catch {
+      setFeedback({ type: "error", message: "Não foi possível salvar o prontuário. Tente novamente." });
+    }
+  };
+
   return (
     <>
       <PageTopbar
@@ -519,6 +656,26 @@ export function SchedulePage({
                     <td>{formatCurrency(appointment.price)}</td>
                     <td>
                       <div className="row-actions">
+                        {appointment.status === "Agendado" || appointment.status === "Confirmado" ? (
+                          <button
+                            className="inline-button icon-text-button"
+                            type="button"
+                            onClick={() => startAttendance(appointment)}
+                          >
+                            <PlayCircle aria-hidden="true" size={16} />
+                            Iniciar atendimento
+                          </button>
+                        ) : null}
+                        {appointment.status === "Em atendimento" ? (
+                          <button
+                            className="inline-button icon-text-button"
+                            type="button"
+                            onClick={() => openAttendanceRecord(appointment)}
+                          >
+                            <CheckCircle2 aria-hidden="true" size={16} />
+                            Finalizar atendimento
+                          </button>
+                        ) : null}
                         <button
                           className="inline-button"
                           type="button"
@@ -801,6 +958,120 @@ export function SchedulePage({
                 </button>
                 <button className="primary-button" type="submit">
                   {editingId ? "Salvar alterações" : "Marcar horário"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+
+      {recordAppointment ? (
+        <div className="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="attendance-record-title">
+          <div className="modal-shell attendance-record-modal-shell">
+            <div className="modal-header">
+              <div>
+                <p className="eyebrow">Prontuário do atendimento</p>
+                <h3 id="attendance-record-title">Finalizar atendimento</h3>
+                <p>
+                  {patientNameById.get(recordAppointment.patientId) ?? recordAppointment.patientId} ·{" "}
+                  {recordAppointment.procedure}
+                </p>
+              </div>
+              <button className="ghost-button" type="button" onClick={closeAttendanceRecord}>
+                Fechar
+              </button>
+            </div>
+
+            <form className="crud-form modal-content" onSubmit={saveAttendanceRecord}>
+              <div className="appointment-control-grid">
+                <div className="appointment-detail-card">
+                  <span>Início</span>
+                  <strong>
+                    {recordAppointment.attendanceStartedAt
+                      ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(
+                          new Date(recordAppointment.attendanceStartedAt)
+                        )
+                      : "-"}
+                  </strong>
+                </div>
+                <div className="appointment-detail-card">
+                  <span>Término</span>
+                  <strong>
+                    {recordAppointment.attendanceFinishedAt
+                      ? new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(
+                          new Date(recordAppointment.attendanceFinishedAt)
+                        )
+                      : "-"}
+                  </strong>
+                </div>
+                <div className="appointment-detail-card">
+                  <span>Duração</span>
+                  <strong>
+                    {recordAppointment.attendanceDurationMinutes
+                      ? `${recordAppointment.attendanceDurationMinutes} min`
+                      : "-"}
+                  </strong>
+                </div>
+              </div>
+
+              <label>
+                <span>Observações do atendimento</span>
+                <textarea
+                  rows={4}
+                  value={recordForm.attendanceClinicalNotes}
+                  onChange={(event) => setRecordForm({ ...recordForm, attendanceClinicalNotes: event.target.value })}
+                  placeholder="Registre o prontuário e as observações clínicas do atendimento"
+                />
+              </label>
+              <label>
+                <span>Procedimento realizado</span>
+                <textarea
+                  rows={3}
+                  value={recordForm.attendanceProcedureDescription}
+                  onChange={(event) =>
+                    setRecordForm({ ...recordForm, attendanceProcedureDescription: event.target.value })
+                  }
+                  placeholder="Descreva o procedimento realizado"
+                />
+              </label>
+              <div className="form-grid form-grid-2">
+                <label>
+                  <span>Produtos utilizados</span>
+                  <textarea
+                    rows={3}
+                    value={recordForm.attendanceProductsUsed}
+                    onChange={(event) => setRecordForm({ ...recordForm, attendanceProductsUsed: event.target.value })}
+                    placeholder="Informe produtos ou ativos utilizados"
+                  />
+                </label>
+                <label>
+                  <span>Próximo retorno</span>
+                  <input
+                    value={recordForm.attendanceNextReturn}
+                    onChange={(event) => setRecordForm({ ...recordForm, attendanceNextReturn: event.target.value })}
+                    placeholder="Ex.: retornar em 30 dias"
+                  />
+                </label>
+              </div>
+              <label>
+                <span>Recomendações</span>
+                <textarea
+                  rows={3}
+                  value={recordForm.attendancePostProcedureRecommendations}
+                  onChange={(event) =>
+                    setRecordForm({ ...recordForm, attendancePostProcedureRecommendations: event.target.value })
+                  }
+                  placeholder="Informe recomendações pós-procedimento"
+                />
+              </label>
+
+              <div className="form-actions modal-footer">
+                <button className="ghost-button" type="button" onClick={closeAttendanceRecord}>
+                  Cancelar
+                </button>
+                <button className="primary-button icon-text-button" type="submit">
+                  <Save aria-hidden="true" size={18} />
+                  Salvar prontuário
                 </button>
               </div>
             </form>

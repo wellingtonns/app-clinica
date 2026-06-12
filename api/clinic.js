@@ -118,7 +118,16 @@ const appointmentSelect = {
   installments: true,
   notes: true,
   price: true,
-  history: true
+  history: true,
+  attendanceStartedAt: true,
+  attendanceFinishedAt: true,
+  attendanceDurationMinutes: true,
+  attendanceProcedureDescription: true,
+  attendanceProductsUsed: true,
+  attendanceClinicalNotes: true,
+  attendancePostProcedureRecommendations: true,
+  attendanceNextReturn: true,
+  attendanceEvolution: true
 };
 
 const financialEntrySelect = {
@@ -345,7 +354,16 @@ async function replaceClinicState(state) {
         originalTime: appointment.originalTime ?? null,
         rescheduleReason: appointment.rescheduleReason ?? null,
         isRescheduled: Boolean(appointment.isRescheduled),
-        history: appointment.history ?? []
+        history: appointment.history ?? [],
+        attendanceStartedAt: appointment.attendanceStartedAt ?? "",
+        attendanceFinishedAt: appointment.attendanceFinishedAt ?? "",
+        attendanceDurationMinutes: appointment.attendanceDurationMinutes ?? null,
+        attendanceProcedureDescription: appointment.attendanceProcedureDescription ?? "",
+        attendanceProductsUsed: appointment.attendanceProductsUsed ?? "",
+        attendanceClinicalNotes: appointment.attendanceClinicalNotes ?? "",
+        attendancePostProcedureRecommendations: appointment.attendancePostProcedureRecommendations ?? "",
+        attendanceNextReturn: appointment.attendanceNextReturn ?? "",
+        attendanceEvolution: appointment.attendanceEvolution ?? ""
       }))
     );
     await createMany(tx, "payment", appointments.map(paymentFromAppointment));
