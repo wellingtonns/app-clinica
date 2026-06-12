@@ -34,6 +34,7 @@ model Patient {
   updatedAt           String
 
   appointments     Appointment[]
+  medicalRecords   MedicalRecord[]
   anamneses        AnamnesisRecord[]
   contracts        ContractRecord[]
   procedures       ProcedureRecord[]
@@ -99,10 +100,39 @@ model Appointment {
   patient          Patient          @relation(fields: [patientId], references: [id], onDelete: Cascade)
   professional     Professional     @relation(fields: [professionalId], references: [id], onDelete: Cascade)
   payment          Payment?
+  medicalRecords   MedicalRecord[]
   financialEntries FinancialEntry[]
 
   @@index([date, time])
   @@index([professionalId, date])
+}
+
+model MedicalRecord {
+  id              String @id
+  patientId       String
+  appointmentId   String?
+  professionalId  String?
+  date            String
+  scheduledTime   String @default("")
+  status          String @default("Finalizado")
+  procedure       String
+  startedAt       String @default("")
+  finishedAt      String @default("")
+  durationMinutes Int?
+  clinicalNotes   String @default("")
+  recommendations String @default("")
+  productsUsed    String @default("")
+  nextReturn      String @default("")
+  evolution       String @default("")
+  createdAt       String
+  updatedAt       String
+
+  patient     Patient      @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  appointment Appointment? @relation(fields: [appointmentId], references: [id], onDelete: SetNull)
+
+  @@index([patientId, date])
+  @@index([appointmentId])
+  @@index([professionalId])
 }
 
 model Payment {

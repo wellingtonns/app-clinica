@@ -3,16 +3,18 @@ import { CalendarX, CheckCircle2, ClipboardList, PlayCircle, Save } from "lucide
 import { AttendanceRecordViewModal } from "../components/AttendanceRecordViewModal";
 import { CrudPanel } from "../components/CrudPanel";
 import { PageTopbar } from "../components/PageTopbar";
-import { Appointment, AppointmentStatus, FinancialStatus, Patient, Professional } from "../types";
+import { Appointment, AppointmentStatus, FinancialStatus, MedicalRecord, Patient, Professional } from "../types";
 import { formatCurrency, formatDate, getWeekRange } from "../utils/format";
 
 type Props = {
   patients: Patient[];
   professionals: Professional[];
   appointments: Appointment[];
+  medicalRecords: MedicalRecord[];
   createAppointment: (input: Omit<Appointment, "id">) => void;
   updateAppointment: (id: string, input: Omit<Appointment, "id">) => void;
   deleteAppointment: (id: string) => void;
+  createMedicalRecord: (input: Omit<MedicalRecord, "id" | "createdAt" | "updatedAt">) => string;
 };
 
 type ViewMode = "Diária" | "Semanal";
@@ -264,9 +266,11 @@ export function SchedulePage({
   patients,
   professionals,
   appointments,
+  medicalRecords,
   createAppointment,
   updateAppointment,
-  deleteAppointment
+  deleteAppointment,
+  createMedicalRecord
 }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -274,7 +278,7 @@ export function SchedulePage({
   const [referenceDate, setReferenceDate] = useState(getTodayIso());
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; message: string } | null>(null);
   const [recordAppointmentId, setRecordAppointmentId] = useState<string | null>(null);
-  const [viewRecordAppointmentId, setViewRecordAppointmentId] = useState<string | null>(null);
+  const [viewMedicalRecordId, setViewMedicalRecordId] = useState<string | null>(null);
   const [recordForm, setRecordForm] = useState({
     attendanceClinicalNotes: "",
     attendanceProcedureDescription: "",
@@ -297,6 +301,15 @@ export function SchedulePage({
     () => new Map(professionals.map((professional) => [professional.id, professional.name])),
     [professionals]
   );
+  const medicalRecordByAppointmentId = useMemo(
+    () =>
+      new Map(
+        medicalRecords
+          .filter((record) => record.appointmentId)
+          .map((record) => [record.appointmentId, record])
+      ),
+    [medicalRecords]
+  );
   const allTimeSlots = useMemo(() => buildTimeSlots(), []);
 
   const visibleAppointments = useMemo(() => {
@@ -306,6 +319,17 @@ export function SchedulePage({
     const range = getWeekRange(referenceDate);
     return sorted.filter((item) => item.date >= range.start && item.date <= range.end);
   }, [appointments, referenceDate, viewMode]);
+  const selectedPatientMedicalRecords = useMemo(
+    () =>
+      medicalRecords
+        .filter((record) => record.patientId === form.patientId)
+        .sort((left, right) =>
+          `${right.date} ${right.startedAt || right.scheduledTime}`.localeCompare(
+            `${left.date} ${left.startedAt || left.scheduledTime}`
+          )
+        ),
+    [form.patientId, medicalRecords]
+  );
 
   const reset = () => {
     setEditingId(null);
@@ -501,8 +525,8 @@ export function SchedulePage({
   const recordAppointment = recordAppointmentId
     ? appointments.find((appointment) => appointment.id === recordAppointmentId)
     : undefined;
-  const viewRecordAppointment = viewRecordAppointmentId
-    ? appointments.find((appointment) => appointment.id === viewRecordAppointmentId)
+  const viewMedicalRecord = viewMedicalRecordId
+    ? medicalRecords.find((record) => record.id === viewMedicalRecordId)
     : undefined;
 
   const startAttendance = (appointment: Appointment) => {
@@ -581,6 +605,23 @@ export function SchedulePage({
         attendanceProductsUsed: recordForm.attendanceProductsUsed.trim(),
         attendanceNextReturn: recordForm.attendanceNextReturn.trim(),
         attendanceEvolution: recordForm.attendanceClinicalNotes.trim()
+      });
+      createMedicalRecord({
+        patientId: recordAppointment.patientId,
+        appointmentId: recordAppointment.id,
+        professionalId: recordAppointment.professionalId,
+        date: recordAppointment.date,
+        scheduledTime: recordAppointment.time,
+        status: "Finalizado",
+        procedure: recordForm.attendanceProcedureDescription.trim(),
+        startedAt,
+        finishedAt,
+        durationMinutes: calculateDurationMinutes(startedAt, finishedAt),
+        clinicalNotes: recordForm.attendanceClinicalNotes.trim(),
+        recommendations: recordForm.attendancePostProcedureRecommendations.trim(),
+        productsUsed: recordForm.attendanceProductsUsed.trim(),
+        nextReturn: recordForm.attendanceNextReturn.trim(),
+        evolution: recordForm.attendanceClinicalNotes.trim()
       });
       closeAttendanceRecord();
       setFeedback({ type: "success", message: "Prontuário salvo e atendimento finalizado com sucesso." });
@@ -685,7 +726,11 @@ export function SchedulePage({
                           <button
                             className="inline-button icon-text-button"
                             type="button"
-                            onClick={() => setViewRecordAppointmentId(appointment.id)}
+                            onClick={() => {
+                              const record = medicalRecordByAppointmentId.get(appointment.id);
+                              if (record) setViewMedicalRecordId(record.id);
+                            }}
+                            disabled={!medicalRecordByAppointmentId.has(appointment.id)}
                           >
                             <ClipboardList aria-hidden="true" size={16} />
                             Ver prontuário
@@ -806,6 +851,48 @@ export function SchedulePage({
                   />
                 </label>
               </div>
+
+              <section className="schedule-picker">
+                <div className="schedule-picker-header">
+                  <div>
+                    <h4>Histórico do paciente</h4>
+                    <p>Consulta dos procedimentos anteriores salvos no cadastro da paciente.</p>
+                  </div>
+                </div>
+                {form.patientId && selectedPatientMedicalRecords.length ? (
+                  <div className="appointment-history-list schedule-history-list">
+                    {selectedPatientMedicalRecords.map((record) => (
+                      <article className="appointment-history-card" key={record.id}>
+                        <div className="appointment-history-card-header">
+                          <div>
+                            <strong>{record.procedure}</strong>
+                            <span>
+                              {formatDate(record.date)} ·{" "}
+                              {record.professionalId
+                                ? professionalNameById.get(record.professionalId) ?? "Profissional não informado"
+                                : "Profissional não informado"}
+                            </span>
+                          </div>
+                          <button
+                            className="inline-button icon-text-button"
+                            type="button"
+                            onClick={() => setViewMedicalRecordId(record.id)}
+                          >
+                            <ClipboardList aria-hidden="true" size={16} />
+                            Ver prontuário
+                          </button>
+                        </div>
+                        <p>{record.clinicalNotes || "Sem observações registradas."}</p>
+                        {record.recommendations ? <small>Recomendações: {record.recommendations}</small> : null}
+                      </article>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="empty-state">
+                    {form.patientId ? "Nenhum atendimento finalizado encontrado para esta paciente." : "Selecione uma paciente para consultar o histórico."}
+                  </div>
+                )}
+              </section>
 
               <section className="schedule-picker">
                 <div className="schedule-picker-header">
@@ -1094,12 +1181,12 @@ export function SchedulePage({
         </div>
       ) : null}
 
-      {viewRecordAppointment ? (
+      {viewMedicalRecord ? (
         <AttendanceRecordViewModal
-          appointment={viewRecordAppointment}
-          patient={patients.find((item) => item.id === viewRecordAppointment.patientId)}
-          professional={professionals.find((item) => item.id === viewRecordAppointment.professionalId)}
-          onClose={() => setViewRecordAppointmentId(null)}
+          record={viewMedicalRecord}
+          patient={patients.find((item) => item.id === viewMedicalRecord.patientId)}
+          professional={professionals.find((item) => item.id === viewMedicalRecord.professionalId)}
+          onClose={() => setViewMedicalRecordId(null)}
         />
       ) : null}
     </>

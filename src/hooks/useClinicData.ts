@@ -7,6 +7,7 @@ import {
   ContractRecord,
   FinancialEntry,
   FinancialStatus,
+  MedicalRecord,
   Patient,
   PatientFileRecord,
   PersistedClinicData,
@@ -25,6 +26,7 @@ type ContractInput = Omit<ContractRecord, "id" | "version" | "uploadedAt">;
 type ProcedureInput = Omit<ProcedureRecord, "id">;
 type PatientFileInput = Omit<PatientFileRecord, "id">;
 type AppointmentInput = Omit<Appointment, "id">;
+type MedicalRecordInput = Omit<MedicalRecord, "id" | "createdAt" | "updatedAt">;
 
 const emptyClinicData: PersistedClinicData = {
   patients: [],
@@ -35,6 +37,7 @@ const emptyClinicData: PersistedClinicData = {
   procedures: [],
   patientFiles: [],
   appointments: [],
+  medicalRecords: [],
   financialEntries: []
 };
 
@@ -201,6 +204,100 @@ function normalizeAppointment(raw: Partial<Appointment>): Appointment {
   };
 }
 
+function hasAppointmentMedicalRecord(raw: {
+  attendanceClinicalNotes?: string;
+  attendanceProcedureDescription?: string;
+  attendanceStartedAt?: string;
+  status?: string;
+}) {
+  return Boolean(
+    raw.attendanceClinicalNotes ||
+      raw.attendanceProcedureDescription ||
+      raw.attendanceStartedAt ||
+      raw.status === "Finalizado" ||
+      raw.status === "ConcluÃ­do" ||
+      raw.status === "Realizado"
+  );
+}
+
+function medicalRecordFromAppointment(appointment: Appointment): MedicalRecord {
+  const stamp = appointment.attendanceFinishedAt || appointment.attendanceStartedAt || appointment.date || toIsoStamp();
+
+  const record = {
+    id: `MR-${appointment.id}`,
+    patientId: appointment.patientId,
+    appointmentId: appointment.id,
+    professionalId: appointment.professionalId,
+    date: appointment.date,
+    scheduledTime: appointment.time,
+    status: appointment.status,
+    procedure: appointment.attendanceProcedureDescription || appointment.procedure,
+    startedAt: appointment.attendanceStartedAt ?? "",
+    finishedAt: appointment.attendanceFinishedAt ?? "",
+    durationMinutes: appointment.attendanceDurationMinutes,
+    clinicalNotes: appointment.attendanceClinicalNotes || appointment.notes || "",
+    recommendations: appointment.attendancePostProcedureRecommendations ?? "",
+    productsUsed: appointment.attendanceProductsUsed ?? "",
+    nextReturn: appointment.attendanceNextReturn ?? "",
+    evolution: appointment.attendanceEvolution ?? "",
+    createdAt: stamp,
+    updatedAt: stamp
+  };
+
+  return {
+    ...record,
+    time: record.scheduledTime,
+    notes: record.clinicalNotes,
+    attendanceStartedAt: record.startedAt,
+    attendanceFinishedAt: record.finishedAt,
+    attendanceDurationMinutes: record.durationMinutes,
+    attendanceProcedureDescription: record.procedure,
+    attendanceProductsUsed: record.productsUsed,
+    attendanceClinicalNotes: record.clinicalNotes,
+    attendancePostProcedureRecommendations: record.recommendations,
+    attendanceNextReturn: record.nextReturn
+  };
+}
+
+function normalizeMedicalRecord(raw: Partial<MedicalRecord>): MedicalRecord {
+  const stamp = raw.updatedAt ?? raw.createdAt ?? toIsoStamp();
+
+  const record = {
+    id: raw.id ?? createId("MR"),
+    patientId: raw.patientId ?? "",
+    appointmentId: raw.appointmentId,
+    professionalId: raw.professionalId ?? "",
+    date: raw.date ?? "",
+    scheduledTime: raw.scheduledTime ?? "",
+    status: normalizeAppointmentStatus(raw.status),
+    procedure: raw.procedure ?? "",
+    startedAt: raw.startedAt ?? "",
+    finishedAt: raw.finishedAt ?? "",
+    durationMinutes: raw.durationMinutes,
+    clinicalNotes: raw.clinicalNotes ?? "",
+    recommendations: raw.recommendations ?? "",
+    productsUsed: raw.productsUsed ?? "",
+    nextReturn: raw.nextReturn ?? "",
+    evolution: raw.evolution ?? "",
+    createdAt: raw.createdAt ?? stamp,
+    updatedAt: raw.updatedAt ?? stamp
+  };
+
+  return {
+    ...record,
+    time: record.scheduledTime,
+    notes: record.clinicalNotes,
+    attendanceStartedAt: record.startedAt,
+    attendanceFinishedAt: record.finishedAt,
+    attendanceDurationMinutes: record.durationMinutes,
+    attendanceProcedureDescription: record.procedure,
+    attendanceProductsUsed: record.productsUsed,
+    attendanceClinicalNotes: record.clinicalNotes,
+    attendancePostProcedureRecommendations: record.recommendations,
+    attendanceNextReturn: record.nextReturn
+  };
+}
+
 function normalizeFinancialEntry(raw: Partial<FinancialEntry>): FinancialEntry {
   const amount = raw.amount ?? 0;
   const paidAmount = raw.paidAmount ?? (raw.status === "Pago" ? amount : 0);
@@ -228,6 +325,20 @@ function normalizeFinancialEntry(raw: Partial<FinancialEntry>): FinancialEntry {
 }
 
 function normalizeClinicData(raw: Partial<PersistedClinicData>): PersistedClinicData {
+  const appointments = Array.isArray(raw.appointments)
+    ? raw.appointments.map((appointment) => normalizeAppointment(appointment as Partial<Appointment>))
+    : [];
+  const explicitMedicalRecords = Array.isArray(raw.medicalRecords)
+    ? raw.medicalRecords.map((record) => normalizeMedicalRecord(record as Partial<MedicalRecord>))
+    : [];
+  const medicalRecordAppointmentIds = new Set(
+    explicitMedicalRecords.map((record) => record.appointmentId).filter(Boolean)
+  );
+  const legacyMedicalRecords = appointments
+    .filter((appointment) => hasAppointmentMedicalRecord(appointment))
+    .filter((appointment) => !medicalRecordAppointmentIds.has(appointment.id))
+    .map((appointment) => medicalRecordFromAppointment(appointment));
+
   return {
     patients: Array.isArray(raw.patients)
       ? raw.patients.map((patient) => normalizePatient(patient as Partial<Patient> & { name?: string }))
@@ -240,9 +351,10 @@ function normalizeClinicData(raw: Partial<PersistedClinicData>): PersistedClinic
       ? raw.procedures.map((procedure) => normalizeProcedure(procedure as ProcedureRecord))
       : [],
     patientFiles: Array.isArray(raw.patientFiles) ? raw.patientFiles : [],
-    appointments: Array.isArray(raw.appointments)
-      ? raw.appointments.map((appointment) => normalizeAppointment(appointment as Partial<Appointment>))
-      : [],
+    appointments,
+    medicalRecords: [...explicitMedicalRecords, ...legacyMedicalRecords].sort((left, right) =>
+      `${right.date}${right.startedAt || right.scheduledTime}`.localeCompare(`${left.date}${left.startedAt || left.scheduledTime}`)
+    ),
     financialEntries: Array.isArray(raw.financialEntries)
       ? raw.financialEntries.map((entry) => normalizeFinancialEntry(entry as Partial<FinancialEntry>))
       : []
@@ -481,6 +593,7 @@ export function useClinicData() {
     procedures: data.procedures,
     patientFiles: data.patientFiles,
     appointments: data.appointments,
+    medicalRecords: data.medicalRecords,
     financialEntries: data.financialEntries,
     createPatient: (input: PatientInput) => {
       const id = createId("PAT");
@@ -508,6 +621,7 @@ export function useClinicData() {
         procedures: current.procedures.filter((item) => item.patientId !== id),
         patientFiles: current.patientFiles.filter((item) => item.patientId !== id),
         appointments: current.appointments.filter((item) => item.patientId !== id),
+        medicalRecords: current.medicalRecords.filter((item) => item.patientId !== id),
         financialEntries: current.financialEntries.filter((item) => item.patientId !== id)
       }));
     },
@@ -666,8 +780,40 @@ export function useClinicData() {
       setPersistedData((current) => ({
         ...current,
         appointments: current.appointments.filter((item) => item.id !== id),
+        medicalRecords: current.medicalRecords.map((item) =>
+          item.appointmentId === id ? { ...item, appointmentId: undefined, updatedAt: toIsoStamp() } : item
+        ),
         financialEntries: current.financialEntries.filter((item) => item.appointmentId !== id)
       }));
+    },
+    createMedicalRecord: (input: MedicalRecordInput) => {
+      const now = toIsoStamp();
+      const id = createId("MR");
+      const nextRecord = normalizeMedicalRecord({ ...input, id, createdAt: now, updatedAt: now });
+
+      setPersistedData((current) => {
+        const existingByAppointment = input.appointmentId
+          ? current.medicalRecords.find((item) => item.appointmentId === input.appointmentId)
+          : undefined;
+
+        if (existingByAppointment) {
+          return {
+            ...current,
+            medicalRecords: current.medicalRecords.map((item) =>
+              item.id === existingByAppointment.id
+                ? { ...nextRecord, id: item.id, createdAt: item.createdAt, updatedAt: now }
+                : item
+            )
+          };
+        }
+
+        return {
+          ...current,
+          medicalRecords: [nextRecord, ...current.medicalRecords]
+        };
+      });
+
+      return id;
     },
     updateFinancialStatus: (id: string, status: FinancialStatus) => {
       setPersistedData((current) => ({

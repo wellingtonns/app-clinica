@@ -5,9 +5,9 @@ import { CrudPanel } from "../components/CrudPanel";
 import { PageTopbar } from "../components/PageTopbar";
 import {
   AnamnesisRecord,
-  Appointment,
   ContractRecord,
   FileCategory,
+  MedicalRecord,
   Patient,
   PatientFileRecord,
   PhotoCategory,
@@ -26,7 +26,7 @@ type Props = {
   procedures: ProcedureRecord[];
   patientFiles: PatientFileRecord[];
   professionals: Professional[];
-  appointments: Appointment[];
+  medicalRecords: MedicalRecord[];
   isLoadingHistory?: boolean;
   historyError?: string | null;
   createAnamnesis: (input: Omit<AnamnesisRecord, "id" | "version" | "createdAt" | "updatedAt">) => void;
@@ -166,7 +166,7 @@ export function PatientDetailsPage({
   procedures,
   patientFiles,
   professionals,
-  appointments,
+  medicalRecords,
   isLoadingHistory = false,
   historyError = null,
   createAnamnesis,
@@ -200,18 +200,12 @@ export function PatientDetailsPage({
   const patientGeneralFiles = patientFiles
     .filter((item) => item.patientId === patientId)
     .sort((left, right) => right.file.uploadedAt.localeCompare(left.file.uploadedAt));
-  const patientAttendanceRecords = appointments
-    .filter((item) => item.patientId === patientId)
-    .filter(
-      (item) =>
-        item.status === "Finalizado" ||
+  const patientAttendanceRecords = medicalRecords
+    .filter((item) => item.patientId === patientId) /*
         item.status === "Concluído" ||
-        item.status === "Realizado" ||
-        Boolean(item.attendanceClinicalNotes || item.attendanceProcedureDescription || item.attendanceStartedAt)
-    )
-    .sort((left, right) =>
-      `${right.attendanceStartedAt || right.date} ${right.time}`.localeCompare(
-        `${left.attendanceStartedAt || left.date} ${left.time}`
+    */.sort((left, right) =>
+      `${right.date} ${right.startedAt || right.scheduledTime}`.localeCompare(
+        `${left.date} ${left.startedAt || left.scheduledTime}`
       )
     );
 
@@ -478,7 +472,7 @@ export function PatientDetailsPage({
                 {patientAttendanceRecords.map((appointment) => (
                   <article className="appointment-history-card" key={appointment.id}>
                     <div>
-                      <strong>{appointment.attendanceProcedureDescription || appointment.procedure}</strong>
+                      <strong>{appointment.procedure}</strong>
                       <span>
                         {formatDate(appointment.date)} · {appointment.time} ·{" "}
                         {professionalNameById.get(appointment.professionalId) ?? "Profissional não informado"}
@@ -1351,7 +1345,7 @@ export function PatientDetailsPage({
 
       {selectedAttendanceRecord ? (
         <AttendanceRecordViewModal
-          appointment={selectedAttendanceRecord}
+          record={selectedAttendanceRecord}
           patient={patient}
           professional={professionals.find((item) => item.id === selectedAttendanceRecord.professionalId)}
           onClose={() => setSelectedAttendanceRecordId(null)}
