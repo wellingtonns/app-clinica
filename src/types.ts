@@ -1,5 +1,13 @@
 export type RoleName = "Administrador" | "Recepção" | "Profissional";
-export type AppointmentStatus = "Agendado" | "Confirmado" | "Desmarcado" | "Realizado" | "Cancelado";
+export type AppointmentStatus =
+  | "Agendado"
+  | "Confirmado"
+  | "Desmarcado"
+  | "Realizado"
+  | "Em atendimento"
+  | "Finalizado"
+  | "Concluído"
+  | "Cancelado";
 export type FinancialStatus = "Pago" | "Pendente" | "Parcial" | "Cancelado";
 export type FinancialEntryType = "Receita" | "Despesa";
 export type PatientStatus = "Ativo" | "Inativo";
@@ -161,6 +169,15 @@ export interface Appointment {
   notes: string;
   price: number;
   history?: AppointmentHistoryEntry[];
+  attendanceStartedAt?: string;
+  attendanceFinishedAt?: string;
+  attendanceDurationMinutes?: number;
+  attendanceProcedureDescription?: string;
+  attendanceProductsUsed?: string;
+  attendanceClinicalNotes?: string;
+  attendancePostProcedureRecommendations?: string;
+  attendanceNextReturn?: string;
+  attendanceEvolution?: string;
 }
 
 export interface AppointmentHistoryEntry {

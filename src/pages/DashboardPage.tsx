@@ -1,15 +1,19 @@
+import { useState } from "react";
 import { CalendarDays, CalendarX, Sparkles, Users, Wallet } from "lucide-react";
-import { Appointment, AppointmentStatus, FinancialEntry, Patient, Professional } from "../types";
+import { Appointment, AppointmentStatus, FinancialEntry, Patient, Professional, AnamnesisRecord } from "../types";
+import { AppointmentDetailsModal } from "../components/AppointmentDetailsModal";
 import { formatCurrency, formatDate } from "../utils/format";
 
 type Props = {
   patients: Patient[];
   professionals: Professional[];
   appointments: Appointment[];
+  anamneses: AnamnesisRecord[];
   financialEntries: FinancialEntry[];
+  updateAppointment: (id: string, input: Omit<Appointment, "id">) => void;
 };
 
-const statusLabels: AppointmentStatus[] = ["Agendado", "Confirmado", "Desmarcado", "Realizado", "Cancelado"];
+const statusLabels: AppointmentStatus[] = ["Agendado", "Confirmado", "Em atendimento", "Finalizado", "Concluído", "Desmarcado", "Realizado", "Cancelado"];
 
 function toLocalIsoDate(date = new Date()) {
   const year = date.getFullYear();
@@ -41,6 +45,9 @@ function countByStatus(appointments: Appointment[]) {
     {
       Agendado: 0,
       Confirmado: 0,
+      "Em atendimento": 0,
+      Finalizado: 0,
+      "Concluído": 0,
       Desmarcado: 0,
       Realizado: 0,
       Cancelado: 0
@@ -49,10 +56,16 @@ function countByStatus(appointments: Appointment[]) {
 }
 
 function getStatusClass(status: AppointmentStatus) {
-  return `appointment-status appointment-status-${status.toLowerCase()}`;
+  const slug = status
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, "-");
+  return `appointment-status appointment-status-${slug}`;
 }
 
-export function DashboardPage({ patients, professionals, appointments }: Props) {
+export function DashboardPage({ patients, professionals, appointments, anamneses, updateAppointment }: Props) {
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const now = new Date();
   const today = toLocalIsoDate(now);
   const currentMonth = today.slice(0, 7);
@@ -77,7 +90,9 @@ export function DashboardPage({ patients, professionals, appointments }: Props) 
   );
 
   const completedThisMonth = appointments.filter(
-    (appointment) => appointment.status === "Realizado" && appointment.date.startsWith(currentMonth)
+    (appointment) =>
+      (appointment.status === "Realizado" || appointment.status === "Finalizado" || appointment.status === "Concluído") &&
+      appointment.date.startsWith(currentMonth)
   );
   const monthlyRevenue = completedThisMonth.reduce((total, appointment) => total + appointment.price, 0);
 
@@ -122,6 +137,9 @@ export function DashboardPage({ patients, professionals, appointments }: Props) 
       icon: Sparkles
     }
   ];
+  const selectedAppointment = selectedAppointmentId
+    ? appointments.find((appointment) => appointment.id === selectedAppointmentId)
+    : undefined;
 
   return (
     <div className="beauty-dashboard">
@@ -182,7 +200,18 @@ export function DashboardPage({ patients, professionals, appointments }: Props) 
                 </thead>
                 <tbody>
                   {agendaAppointments.map((appointment) => (
-                    <tr key={appointment.id}>
+                    <tr
+                      className="clickable-appointment-row"
+                      key={appointment.id}
+                      tabIndex={0}
+                      onClick={() => setSelectedAppointmentId(appointment.id)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setSelectedAppointmentId(appointment.id);
+                        }
+                      }}
+                    >
                       <td>{appointment.date === today ? "Hoje" : formatDate(appointment.date)}</td>
                       <td>{appointment.time}</td>
                       <td>{patientNameById.get(appointment.patientId) ?? appointment.patientId}</td>
@@ -209,6 +238,18 @@ export function DashboardPage({ patients, professionals, appointments }: Props) 
           )}
         </article>
       </section>
+
+      {selectedAppointment ? (
+        <AppointmentDetailsModal
+          appointment={selectedAppointment}
+          patients={patients}
+          professionals={professionals}
+          appointments={appointments}
+          anamneses={anamneses}
+          updateAppointment={updateAppointment}
+          onClose={() => setSelectedAppointmentId(null)}
+        />
+      ) : null}
     </div>
   );
 }
