@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   AnamnesisRecord,
   Appointment,
@@ -42,6 +43,7 @@ const emptyClinicData: PersistedClinicData = {
 };
 
 let clinicDataFetchPromise: Promise<PersistedClinicData> | null = null;
+let clinicDataFetchKey = "";
 let clinicDataVersion = 0;
 
 function createId(prefix: string) {
@@ -457,10 +459,28 @@ function markClinicDataVersion() {
   clinicDataVersion += 1;
 }
 
-async function fetchClinicData() {
-  if (clinicDataFetchPromise) return clinicDataFetchPromise;
+function getClinicScope(pathname: string) {
+  if (pathname === "/") return { scope: "dashboard" };
+  if (pathname.startsWith("/pacientes/")) {
+    return { scope: "patient-detail", id: decodeURIComponent(pathname.replace("/pacientes/", "").split("/")[0] ?? "") };
+  }
+  if (pathname.startsWith("/pacientes")) return { scope: "patients" };
+  if (pathname.startsWith("/agenda")) return { scope: "appointments" };
+  if (pathname.startsWith("/financeiro")) return { scope: "finance" };
+  if (pathname.startsWith("/produtos")) return { scope: "products" };
+  if (pathname.startsWith("/profissionais")) return { scope: "professionals" };
+  return { scope: "all" };
+}
 
-  clinicDataFetchPromise = fetch("/api/clinic", { cache: "no-store" })
+async function fetchClinicData(scopeOptions: { scope: string; id?: string }) {
+  const params = new URLSearchParams({ scope: scopeOptions.scope });
+  if (scopeOptions.id) params.set("id", scopeOptions.id);
+  const fetchKey = params.toString();
+
+  if (clinicDataFetchPromise && clinicDataFetchKey === fetchKey) return clinicDataFetchPromise;
+
+  clinicDataFetchKey = fetchKey;
+  clinicDataFetchPromise = fetch(`/api/clinic?${fetchKey}`, { cache: "no-store" })
     .then((response) => {
       if (!response.ok) throw new Error("Não foi possível carregar os dados.");
       return response.json() as Promise<PersistedClinicData>;
@@ -468,6 +488,7 @@ async function fetchClinicData() {
     .then((payload) => withSyncedFinancialEntries(normalizeClinicData(payload)))
     .finally(() => {
       clinicDataFetchPromise = null;
+      clinicDataFetchKey = "";
     });
 
   return clinicDataFetchPromise;
@@ -507,6 +528,8 @@ async function mutateClinicResource(resource: string, method: "POST" | "PUT" | "
 }
 
 export function useClinicData() {
+  const location = useLocation();
+  const clinicScope = getClinicScope(location.pathname);
   const [data, setData] = useState<PersistedClinicData>(emptyClinicData);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -516,7 +539,8 @@ export function useClinicData() {
     let isMounted = true;
     const requestedVersion = clinicDataVersion;
 
-    fetchClinicData()
+    setIsLoading(true);
+    fetchClinicData(clinicScope)
       .then((freshData) => {
         if (!isMounted || clinicDataVersion !== requestedVersion) return;
         markClinicDataVersion();
@@ -539,7 +563,7 @@ export function useClinicData() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [clinicScope.scope, clinicScope.id]);
 
   const canPersistClinicData = () => {
     if (hasFreshServerData) return true;
@@ -561,7 +585,7 @@ export function useClinicData() {
       const previous = current;
       markClinicDataVersion();
       void (mutation ? mutation() : saveClinicData(next))
-        .then(fetchClinicData)
+        .then(() => fetchClinicData(clinicScope))
         .then((freshData) => {
           const normalized = withSyncedFinancialEntries(normalizeClinicData(freshData));
           markClinicDataVersion();
@@ -843,6 +867,28 @@ export function useClinicData() {
       return id;
     },
     updateFinancialStatus: (id: string, status: FinancialStatus) => {
+      const entry = data.financialEntries.find((item) => item.id === id);
+      const appointment = entry?.appointmentId
+        ? data.appointments.find((item) => item.id === entry.appointmentId)
+        : undefined;
+      const updatedAppointment = appointment
+        ? {
+            ...appointment,
+            paymentStatus: status,
+            paidAmount: status === "Pago" ? appointment.price : status === "Pendente" || status === "Cancelado" ? 0 : appointment.paidAmount,
+            paymentDate: status === "Pago" ? appointment.paymentDate || toIsoStamp().slice(0, 10) : appointment.paymentDate
+          }
+        : undefined;
+      const updatedEntry = entry
+        ? {
+            ...entry,
+            status,
+            paidAmount: status === "Pago" ? entry.amount : status === "Pendente" || status === "Cancelado" ? 0 : entry.paidAmount,
+            balanceAmount: status === "Pago" ? 0 : Math.max(entry.amount - (status === "Pendente" || status === "Cancelado" ? 0 : entry.paidAmount), 0),
+            paymentDate: status === "Pago" ? entry.paymentDate || toIsoStamp().slice(0, 10) : entry.paymentDate
+          }
+        : undefined;
+
       setPersistedData((current) => ({
         ...current,
         appointments: current.appointments.map((appointment) => {
@@ -857,12 +903,41 @@ export function useClinicData() {
           };
         }),
         financialEntries: current.financialEntries.map((item) => (item.id === id ? { ...item, status } : item))
-      }));
+      }), () =>
+        Promise.all([
+          updatedEntry ? mutateClinicResource("financialEntries", "PUT", updatedEntry, id) : Promise.resolve(),
+          updatedAppointment ? mutateClinicResource("appointments", "PUT", updatedAppointment, updatedAppointment.id) : Promise.resolve()
+        ]).then(() => undefined)
+      );
     },
     updateFinancialEntry: (
       id: string,
       input: Pick<FinancialEntry, "status" | "paymentMethod" | "paymentDate" | "paidAmount" | "installments">
     ) => {
+      const entryToUpdate = data.financialEntries.find((item) => item.id === id);
+      const appointmentToUpdate = entryToUpdate?.appointmentId
+        ? data.appointments.find((item) => item.id === entryToUpdate.appointmentId)
+        : undefined;
+      const updatedEntry = entryToUpdate
+        ? {
+            ...entryToUpdate,
+            ...input,
+            paidAmount: input.status === "Pago" ? entryToUpdate.amount : input.paidAmount,
+            balanceAmount: input.status === "Pago" ? 0 : Math.max(entryToUpdate.amount - input.paidAmount, 0),
+            installments: input.paymentMethod === "CartÃ£o de crÃ©dito" ? input.installments : undefined
+          }
+        : undefined;
+      const updatedAppointment = appointmentToUpdate
+        ? {
+            ...appointmentToUpdate,
+            paymentStatus: input.status,
+            paymentMethod: input.paymentMethod,
+            paymentDate: input.paymentDate,
+            paidAmount: input.status === "Pago" ? appointmentToUpdate.price : input.paidAmount,
+            installments: input.paymentMethod === "CartÃ£o de crÃ©dito" ? input.installments : undefined
+          }
+        : undefined;
+
       setPersistedData((current) => {
         const entry = current.financialEntries.find((item) => item.id === id);
         return {
@@ -891,7 +966,12 @@ export function useClinicData() {
               : item
           )
         };
-      });
+      }, () =>
+        Promise.all([
+          updatedEntry ? mutateClinicResource("financialEntries", "PUT", updatedEntry, id) : Promise.resolve(),
+          updatedAppointment ? mutateClinicResource("appointments", "PUT", updatedAppointment, updatedAppointment.id) : Promise.resolve()
+        ]).then(() => undefined)
+      );
     }
   };
 }

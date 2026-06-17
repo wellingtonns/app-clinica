@@ -292,8 +292,58 @@ function stockMovementFromProduct(product) {
   };
 }
 
-async function getClinicState() {
+function clinicScopeCollections(scope) {
+  if (scope === "dashboard") {
+    return new Set(["patients", "products", "professionals", "anamneses", "appointments", "financialEntries"]);
+  }
+
+  if (scope === "patients") {
+    return new Set(["patients", "professionals", "anamneses", "contracts", "procedures", "medicalRecords"]);
+  }
+
+  if (scope === "patient-detail") {
+    return new Set(["patients", "professionals", "anamneses", "contracts", "procedures", "patientFiles", "medicalRecords"]);
+  }
+
+  if (scope === "appointments") {
+    return new Set(["patients", "professionals", "appointments", "medicalRecords"]);
+  }
+
+  if (scope === "finance") {
+    return new Set(["patients", "products", "professionals", "appointments", "financialEntries"]);
+  }
+
+  if (scope === "products") {
+    return new Set(["products"]);
+  }
+
+  if (scope === "professionals") {
+    return new Set(["professionals"]);
+  }
+
+  return new Set(clinicStateCollections);
+}
+
+function isCollectionEnabled(collections, name) {
+  return collections.has(name);
+}
+
+async function timedQuery(label, callback) {
+  const startedAt = Date.now();
+  try {
+    return await callback();
+  } finally {
+    console.log(`[clinic:get] ${label} ${Date.now() - startedAt}ms`);
+  }
+}
+
+async function getClinicState(options = {}) {
   const now = Date.now();
+  const scope = options.scope ?? "all";
+
+  if (scope !== "all") {
+    return loadClinicStateFromDatabase(options);
+  }
 
   if (clinicStateCache.data && clinicStateCache.expiresAt > now) {
     return clinicStateCache.data;
@@ -303,7 +353,7 @@ async function getClinicState() {
     return clinicStateCache.promise;
   }
 
-  clinicStateCache.promise = loadClinicStateFromDatabase()
+  clinicStateCache.promise = loadClinicStateFromDatabase(options)
     .then((state) => {
       clinicStateCache.data = state;
       clinicStateCache.expiresAt = Date.now() + clinicStateCacheTtlMs;
@@ -316,18 +366,71 @@ async function getClinicState() {
   return clinicStateCache.promise;
 }
 
-async function loadClinicStateFromDatabase() {
+async function loadClinicStateFromDatabase(options = {}) {
+  const scope = options.scope ?? "all";
+  const patientId = options.patientId ?? "";
+  const collections = clinicScopeCollections(scope);
+  const totalStartedAt = Date.now();
+  console.log(`[clinic:get] total start scope=${scope}`);
+
+  const patientWhere = scope === "patient-detail" && patientId ? { id: patientId } : undefined;
+  const byPatientWhere = scope === "patient-detail" && patientId ? { patientId } : undefined;
+
   const result = await Promise.allSettled([
-    prisma.patient.findMany({ select: patientSelect, orderBy: { fullName: "asc" } }),
-    prisma.product.findMany({ select: productSelect, orderBy: { name: "asc" } }),
-    prisma.professional.findMany({ select: professionalSelect, orderBy: { name: "asc" } }),
-    prisma.anamnesisRecord.findMany({ select: anamnesisSelect, orderBy: [{ patientId: "asc" }, { version: "asc" }] }),
-    prisma.contractRecord.findMany({ select: contractSelect, orderBy: [{ patientId: "asc" }, { version: "asc" }] }),
-    prisma.procedureRecord.findMany({ select: procedureSelect, orderBy: [{ date: "desc" }, { name: "asc" }] }),
-    prisma.patientFileRecord.findMany({ select: patientFileSelect, orderBy: { id: "asc" } }),
-    prisma.appointment.findMany({ select: appointmentSelect, orderBy: [{ date: "asc" }, { time: "asc" }] }),
-    prisma.medicalRecord.findMany({ select: medicalRecordSelect, orderBy: [{ date: "desc" }, { startedAt: "desc" }] }),
-    prisma.financialEntry.findMany({ select: financialEntrySelect, orderBy: [{ date: "desc" }, { description: "asc" }] })
+    isCollectionEnabled(collections, "patients")
+      ? timedQuery("patients", () => prisma.patient.findMany({ where: patientWhere, select: patientSelect, orderBy: { fullName: "asc" } }))
+      : Promise.resolve([]),
+    isCollectionEnabled(collections, "products")
+      ? timedQuery("products", () => prisma.product.findMany({ select: productSelect, orderBy: { name: "asc" } }))
+      : Promise.resolve([]),
+    isCollectionEnabled(collections, "professionals")
+      ? timedQuery("professionals", () => prisma.professional.findMany({ select: professionalSelect, orderBy: { name: "asc" } }))
+      : Promise.resolve([]),
+    isCollectionEnabled(collections, "anamneses")
+      ? timedQuery("anamneses", () =>
+          prisma.anamnesisRecord.findMany({
+            where: byPatientWhere,
+            select: anamnesisSelect,
+            orderBy: [{ patientId: "asc" }, { version: "asc" }]
+          })
+        )
+      : Promise.resolve([]),
+    isCollectionEnabled(collections, "contracts")
+      ? timedQuery("contracts", () =>
+          prisma.contractRecord.findMany({
+            where: byPatientWhere,
+            select: contractSelect,
+            orderBy: [{ patientId: "asc" }, { version: "asc" }]
+          })
+        )
+      : Promise.resolve([]),
+    isCollectionEnabled(collections, "procedures")
+      ? timedQuery("procedures", () =>
+          prisma.procedureRecord.findMany({
+            where: byPatientWhere,
+            select: procedureSelect,
+            orderBy: [{ date: "desc" }, { name: "asc" }]
+          })
+        )
+      : Promise.resolve([]),
+    isCollectionEnabled(collections, "patientFiles")
+      ? timedQuery("patientFiles", () => prisma.patientFileRecord.findMany({ where: byPatientWhere, select: patientFileSelect, orderBy: { id: "asc" } }))
+      : Promise.resolve([]),
+    isCollectionEnabled(collections, "appointments")
+      ? timedQuery("appointments", () => prisma.appointment.findMany({ select: appointmentSelect, orderBy: [{ date: "asc" }, { time: "asc" }] }))
+      : Promise.resolve([]),
+    isCollectionEnabled(collections, "medicalRecords")
+      ? timedQuery("medicalRecords", () =>
+          prisma.medicalRecord.findMany({
+            where: byPatientWhere,
+            select: medicalRecordSelect,
+            orderBy: [{ date: "desc" }, { startedAt: "desc" }]
+          })
+        )
+      : Promise.resolve([]),
+    isCollectionEnabled(collections, "financialEntries")
+      ? timedQuery("financialEntries", () => prisma.financialEntry.findMany({ select: financialEntrySelect, orderBy: [{ date: "desc" }, { description: "asc" }] }))
+      : Promise.resolve([])
   ]);
 
   const collectionNames = [
@@ -361,7 +464,8 @@ async function loadClinicStateFromDatabase() {
     return [];
   });
 
-  return {
+  const mappingStartedAt = Date.now();
+  const state = {
     patients,
     products,
     professionals,
@@ -380,6 +484,9 @@ async function loadClinicStateFromDatabase() {
     })),
     financialEntries
   };
+  console.log(`[clinic:get] mapping ${Date.now() - mappingStartedAt}ms`);
+  console.log(`[clinic:get] total ${Date.now() - totalStartedAt}ms scope=${scope}`);
+  return state;
 }
 
 function updateClinicStateCache(state) {
@@ -752,7 +859,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "GET") {
-      return json(res, 200, await getClinicState());
+      return json(res, 200, await getClinicState({ scope: getQuery(req, "scope") || "all", patientId: getQuery(req, "id") }));
     }
 
     if (req.method === "PUT") {
