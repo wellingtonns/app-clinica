@@ -2,7 +2,7 @@ import { prisma } from "./_prisma.js";
 import { getSessionToken, verifySessionToken } from "./auth/_utils.js";
 
 const globalForClinicCache = globalThis;
-const clinicStateCacheTtlMs = 60 * 1000;
+const clinicStateCacheTtlMs = 0;
 
 const clinicStateCache =
   globalForClinicCache.softSteticClinicStateCache ?? {
@@ -521,7 +521,7 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "GET") {
-      return json(res, 200, await getClinicState(), "private, max-age=15, stale-while-revalidate=60");
+      return json(res, 200, await getClinicState());
     }
 
     if (req.method === "PUT") {

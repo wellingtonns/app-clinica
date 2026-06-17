@@ -41,17 +41,8 @@ const emptyClinicData: PersistedClinicData = {
   financialEntries: []
 };
 
-const clinicDataCacheKey = "softstetic:clinic-data:v1";
-const clinicDataPersistentCacheKey = "softstetic:clinic-data:persistent:v1";
-const clinicDataPersistentCacheMaxAgeMs = 1000 * 60 * 60 * 24;
-let clinicDataCache: PersistedClinicData | null = null;
 let clinicDataFetchPromise: Promise<PersistedClinicData> | null = null;
 let clinicDataVersion = 0;
-
-type CachedClinicDataEnvelope = {
-  savedAt: number;
-  data: Partial<PersistedClinicData>;
-};
 
 function createId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -462,60 +453,14 @@ function withSyncedFinancialEntries(data: PersistedClinicData): PersistedClinicD
   };
 }
 
-function readCachedClinicData() {
-  if (clinicDataCache) return clinicDataCache;
-  if (typeof window === "undefined") return null;
-
-  try {
-    const memoryCached = window.sessionStorage.getItem(clinicDataCacheKey);
-    if (memoryCached) {
-      clinicDataCache = withSyncedFinancialEntries(normalizeClinicData(JSON.parse(memoryCached) as Partial<PersistedClinicData>));
-      return clinicDataCache;
-    }
-
-    const persistentCached = window.localStorage.getItem(clinicDataPersistentCacheKey);
-    if (!persistentCached) return null;
-
-    const envelope = JSON.parse(persistentCached) as CachedClinicDataEnvelope;
-    if (!envelope.savedAt || Date.now() - envelope.savedAt > clinicDataPersistentCacheMaxAgeMs) {
-      window.localStorage.removeItem(clinicDataPersistentCacheKey);
-      return null;
-    }
-
-    clinicDataCache = withSyncedFinancialEntries(normalizeClinicData(envelope.data));
-    window.sessionStorage.setItem(clinicDataCacheKey, JSON.stringify(clinicDataCache));
-    return clinicDataCache;
-  } catch (error) {
-    console.error(error);
-    window.sessionStorage.removeItem(clinicDataCacheKey);
-    window.localStorage.removeItem(clinicDataPersistentCacheKey);
-    return null;
-  }
-}
-
-function writeCachedClinicData(data: PersistedClinicData) {
-  clinicDataCache = data;
+function markClinicDataVersion() {
   clinicDataVersion += 1;
-
-  if (typeof window === "undefined") return;
-  try {
-    window.sessionStorage.setItem(clinicDataCacheKey, JSON.stringify(data));
-    window.localStorage.setItem(
-      clinicDataPersistentCacheKey,
-      JSON.stringify({
-        savedAt: Date.now(),
-        data
-      } satisfies CachedClinicDataEnvelope)
-    );
-  } catch (error) {
-    console.error(error);
-  }
 }
 
 async function fetchClinicData() {
   if (clinicDataFetchPromise) return clinicDataFetchPromise;
 
-  clinicDataFetchPromise = fetch("/api/clinic", { cache: "no-cache" })
+  clinicDataFetchPromise = fetch("/api/clinic", { cache: "no-store" })
     .then((response) => {
       if (!response.ok) throw new Error("Não foi possível carregar os dados.");
       return response.json() as Promise<PersistedClinicData>;
@@ -540,9 +485,8 @@ async function saveClinicData(data: PersistedClinicData) {
 }
 
 export function useClinicData() {
-  const initialData = readCachedClinicData();
-  const [data, setData] = useState<PersistedClinicData>(initialData ?? emptyClinicData);
-  const [isLoading, setIsLoading] = useState(!initialData);
+  const [data, setData] = useState<PersistedClinicData>(emptyClinicData);
+  const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [hasFreshServerData, setHasFreshServerData] = useState(false);
 
@@ -553,7 +497,7 @@ export function useClinicData() {
     fetchClinicData()
       .then((freshData) => {
         if (!isMounted || clinicDataVersion !== requestedVersion) return;
-        writeCachedClinicData(freshData);
+        markClinicDataVersion();
         setData(freshData);
         setHasFreshServerData(true);
         setLoadError(null);
@@ -563,7 +507,7 @@ export function useClinicData() {
         if (isMounted) {
           setHasFreshServerData(false);
           setLoadError("Não foi possível carregar os dados da clínica.");
-          if (!readCachedClinicData()) setData(emptyClinicData);
+          setData(emptyClinicData);
         }
       })
       .finally(() => {
@@ -589,9 +533,26 @@ export function useClinicData() {
 
     setData((current) => {
       const next = withSyncedFinancialEntries(updater(current));
-      writeCachedClinicData(next);
+      const previous = current;
+      markClinicDataVersion();
       void saveClinicData(next)
-        .catch((error) => console.error(error));
+        .then(fetchClinicData)
+        .then((freshData) => {
+          const normalized = withSyncedFinancialEntries(normalizeClinicData(freshData));
+          markClinicDataVersion();
+          setData(normalized);
+          setHasFreshServerData(true);
+          setLoadError(null);
+        })
+        .catch((error) => {
+          console.error(error);
+          markClinicDataVersion();
+          setData(previous);
+          setLoadError("Não foi possível salvar no banco. A alteração foi desfeita.");
+          if (typeof window !== "undefined") {
+            window.alert("Não foi possível salvar no banco. A alteração foi desfeita.");
+          }
+        });
       return next;
     });
 
