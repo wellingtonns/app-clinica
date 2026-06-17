@@ -300,18 +300,7 @@ async function getClinicState() {
 }
 
 async function loadClinicStateFromDatabase() {
-  const [
-    patients,
-    products,
-    professionals,
-    anamneses,
-    contracts,
-    procedures,
-    patientFiles,
-    appointments,
-    medicalRecords,
-    financialEntries
-  ] = await Promise.all([
+  const result = await Promise.allSettled([
     prisma.patient.findMany({ select: patientSelect, orderBy: { fullName: "asc" } }),
     prisma.product.findMany({ select: productSelect, orderBy: { name: "asc" } }),
     prisma.professional.findMany({ select: professionalSelect, orderBy: { name: "asc" } }),
@@ -323,6 +312,37 @@ async function loadClinicStateFromDatabase() {
     prisma.medicalRecord.findMany({ select: medicalRecordSelect, orderBy: [{ date: "desc" }, { startedAt: "desc" }] }),
     prisma.financialEntry.findMany({ select: financialEntrySelect, orderBy: [{ date: "desc" }, { description: "asc" }] })
   ]);
+
+  const collectionNames = [
+    "patients",
+    "products",
+    "professionals",
+    "anamneses",
+    "contracts",
+    "procedures",
+    "patientFiles",
+    "appointments",
+    "medicalRecords",
+    "financialEntries"
+  ];
+
+  const [
+    patients,
+    products,
+    professionals,
+    anamneses,
+    contracts,
+    procedures,
+    patientFiles,
+    appointments,
+    medicalRecords,
+    financialEntries
+  ] = result.map((item, index) => {
+    if (item.status === "fulfilled") return item.value;
+
+    console.error(`Falha ao carregar ${collectionNames[index]} do banco`, item.reason);
+    return [];
+  });
 
   return {
     patients,
