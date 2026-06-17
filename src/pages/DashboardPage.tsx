@@ -5,6 +5,8 @@ import { AppointmentDetailsModal } from "../components/AppointmentDetailsModal";
 import { formatCurrency, formatDate } from "../utils/format";
 
 type Props = {
+  isLoadingData?: boolean;
+  loadError?: string | null;
   patients: Patient[];
   professionals: Professional[];
   appointments: Appointment[];
@@ -64,7 +66,15 @@ function getStatusClass(status: AppointmentStatus) {
   return `appointment-status appointment-status-${slug}`;
 }
 
-export function DashboardPage({ patients, professionals, appointments, anamneses, updateAppointment }: Props) {
+export function DashboardPage({
+  isLoadingData = false,
+  loadError = null,
+  patients,
+  professionals,
+  appointments,
+  anamneses,
+  updateAppointment
+}: Props) {
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<string | null>(null);
   const now = new Date();
   const today = toLocalIsoDate(now);
@@ -104,6 +114,9 @@ export function DashboardPage({ patients, professionals, appointments, anamneses
   const agendaAppointments = [...todaysAppointments, ...futureAppointments.filter((appointment) => appointment.date !== today)]
     .sort(sortAppointments)
     .slice(0, 12);
+  const fallbackAppointments = [...appointments].sort((left, right) => sortAppointments(right, left)).slice(0, 12);
+  const displayedAppointments = agendaAppointments.length > 0 ? agendaAppointments : fallbackAppointments;
+  const isShowingRecentAppointments = agendaAppointments.length === 0 && fallbackAppointments.length > 0;
 
   const indicators = [
     {
@@ -160,6 +173,12 @@ export function DashboardPage({ patients, professionals, appointments, anamneses
         </div>
       </header>
 
+      {loadError ? (
+        <div className="empty-state">{loadError}</div>
+      ) : isLoadingData ? (
+        <div className="empty-state">Carregando dados da clínica...</div>
+      ) : null}
+
       <section className="metric-grid beauty-metrics" aria-label="Indicadores principais">
         {indicators.map((indicator) => {
           const Icon = indicator.icon;
@@ -182,10 +201,14 @@ export function DashboardPage({ patients, professionals, appointments, anamneses
           <div className="panel-header">
             <div>
               <h4>Agenda</h4>
-              <p>Agendamentos de hoje e próximos atendimentos futuros, ordenados por data e horário.</p>
+              <p>
+                {isShowingRecentAppointments
+                  ? "Nenhum atendimento futuro encontrado. Exibindo os últimos agendamentos cadastrados."
+                  : "Agendamentos de hoje e próximos atendimentos futuros, ordenados por data e horário."}
+              </p>
             </div>
           </div>
-          {agendaAppointments.length > 0 ? (
+          {displayedAppointments.length > 0 ? (
             <div className="table-wrap">
               <table className="beauty-table">
                 <thead>
@@ -199,7 +222,7 @@ export function DashboardPage({ patients, professionals, appointments, anamneses
                   </tr>
                 </thead>
                 <tbody>
-                  {agendaAppointments.map((appointment) => (
+                  {displayedAppointments.map((appointment) => (
                     <tr
                       className="clickable-appointment-row"
                       key={appointment.id}
@@ -233,7 +256,7 @@ export function DashboardPage({ patients, professionals, appointments, anamneses
           ) : (
             <div className="empty-state empty-state-featured">
               <CalendarX aria-hidden="true" size={30} strokeWidth={1.8} />
-              <p>{todaysAppointments.length === 0 ? "Nenhum agendamento para hoje" : "Nenhum atendimento futuro"}</p>
+              <p>Nenhum agendamento cadastrado.</p>
             </div>
           )}
         </article>

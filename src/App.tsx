@@ -47,11 +47,22 @@ function AuthenticatedRoutes({ onLogout }: { onLogout: () => void }) {
 
   return (
     <Layout onLogout={onLogout}>
+      {clinicData.loadError ? (
+        <div className="empty-state">
+          {clinicData.loadError}
+        </div>
+      ) : clinicData.isLoading ? (
+        <div className="empty-state">
+          Carregando dados da clínica...
+        </div>
+      ) : null}
       <Routes>
         <Route
           path="/"
           element={
             <DashboardPage
+              isLoadingData={clinicData.isLoading}
+              loadError={clinicData.loadError}
               patients={clinicData.patients}
               professionals={clinicData.professionals}
               appointments={clinicData.appointments}
