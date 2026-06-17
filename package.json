@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
+    "@vercel/blob": "latest",
     "bcryptjs": "^3.0.2",
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^1.17.0",

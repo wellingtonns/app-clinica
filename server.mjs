@@ -25,6 +25,8 @@ const mimeTypes = {
 const apiRoutes = [
   { pattern: /^\/api\/health\/?$/, file: "health.js" },
   { pattern: /^\/api\/clinic\/?$/, file: "clinic.js" },
+  { pattern: /^\/api\/blob\/upload\/?$/, file: "blob/upload.js" },
+  { pattern: /^\/api\/blob\/file\/?$/, file: "blob/file.js" },
   { pattern: /^\/api\/auth\/login\/?$/, file: "auth/login.js" },
   { pattern: /^\/api\/auth\/logout\/?$/, file: "auth/logout.js" },
   { pattern: /^\/api\/auth\/me\/?$/, file: "auth/me.js" },

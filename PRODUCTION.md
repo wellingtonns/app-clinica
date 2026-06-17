@@ -16,10 +16,12 @@ DATABASE_URL="postgresql://USER:PASSWORD@HOST:6543/postgres?pgbouncer=true&conne
 DIRECT_URL="postgresql://USER:PASSWORD@HOST:5432/postgres"
 NEXT_PUBLIC_APP_NAME="Stetic Soft"
 JWT_SECRET="gere-um-valor-longo-e-seguro"
+BLOB_READ_WRITE_TOKEN="criado-ao-conectar-o-vercel-blob"
 ```
 
 Use `DATABASE_URL` com o pooler do Supabase para runtime e `DIRECT_URL` com a conexão direta para migrations.
 Use `JWT_SECRET` para assinar o cookie httpOnly de sessão. Em produção, gere um valor forte e exclusivo.
+Use `BLOB_READ_WRITE_TOKEN` para salvar imagens, contratos e arquivos do paciente no Vercel Blob. Para dados de paciente, prefira um Blob store privado; o app entrega os arquivos por uma rota autenticada em `/api/blob/file`.
 
 ## Primeiro deploy
 

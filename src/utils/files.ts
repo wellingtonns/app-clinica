@@ -49,7 +49,7 @@ export async function filesToStoredAssets(
 ): Promise<StoredAsset[]> {
   const fileArray = Array.from(files);
   return Promise.all(
-    fileArray.map(async (file, index) => {
+    fileArray.map(async (file) => {
       const dataUrl = await readFileAsDataUrl(file);
       return uploadFileToBlob(file, dataUrl, description, options);
     })
