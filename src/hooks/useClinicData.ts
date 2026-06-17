@@ -488,6 +488,24 @@ async function saveClinicData(data: PersistedClinicData) {
   }
 }
 
+async function mutateClinicResource(resource: string, method: "POST" | "PUT" | "DELETE", body?: unknown, id?: string) {
+  const params = new URLSearchParams({ resource });
+  if (id) params.set("id", id);
+
+  const response = await fetch(`/api/clinic?${params.toString()}`, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    cache: "no-store",
+    body: body ? JSON.stringify(body) : undefined
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    const debugMessage = payload?.debug?.message ? ` Detalhe: ${payload.debug.message}` : "";
+    throw new Error(`${payload?.error ?? "Não foi possível salvar os dados."}${debugMessage}`);
+  }
+}
+
 export function useClinicData() {
   const [data, setData] = useState<PersistedClinicData>(emptyClinicData);
   const [isLoading, setIsLoading] = useState(true);
@@ -532,14 +550,17 @@ export function useClinicData() {
     return false;
   };
 
-  const setPersistedData = (updater: (current: PersistedClinicData) => PersistedClinicData) => {
+  const setPersistedData = (
+    updater: (current: PersistedClinicData) => PersistedClinicData,
+    mutation?: () => Promise<void>
+  ) => {
     if (!canPersistClinicData()) return false;
 
     setData((current) => {
       const next = withSyncedFinancialEntries(updater(current));
       const previous = current;
       markClinicDataVersion();
-      void saveClinicData(next)
+      void (mutation ? mutation() : saveClinicData(next))
         .then(fetchClinicData)
         .then((freshData) => {
           const normalized = withSyncedFinancialEntries(normalizeClinicData(freshData));
@@ -580,19 +601,22 @@ export function useClinicData() {
     createPatient: (input: PatientInput) => {
       const id = createId("PAT");
       const now = toIsoStamp();
+      const patient = { ...input, id, createdAt: now, updatedAt: now };
       const saved = setPersistedData((current) => ({
         ...current,
-        patients: [...current.patients, { ...input, id, createdAt: now, updatedAt: now }]
-      }));
+        patients: [...current.patients, patient]
+      }), () => mutateClinicResource("patients", "POST", patient));
       return saved ? id : "";
     },
     updatePatient: (id: string, input: PatientInput) => {
+      const currentPatient = data.patients.find((item) => item.id === id);
+      const patient = { ...input, id, createdAt: currentPatient?.createdAt ?? toIsoStamp(), updatedAt: toIsoStamp() };
       setPersistedData((current) => ({
         ...current,
         patients: current.patients.map((item) =>
-          item.id === id ? { ...input, id, createdAt: item.createdAt, updatedAt: toIsoStamp() } : item
+          item.id === id ? { ...input, id, createdAt: item.createdAt, updatedAt: patient.updatedAt } : item
         )
-      }));
+      }), () => mutateClinicResource("patients", "PUT", patient, id));
     },
     deletePatient: (id: string) => {
       setPersistedData((current) => ({
@@ -605,37 +629,41 @@ export function useClinicData() {
         appointments: current.appointments.filter((item) => item.patientId !== id),
         medicalRecords: current.medicalRecords.filter((item) => item.patientId !== id),
         financialEntries: current.financialEntries.filter((item) => item.patientId !== id)
-      }));
+      }), () => mutateClinicResource("patients", "DELETE", undefined, id));
     },
     createProduct: (input: ProductInput) => {
+      const product = { ...input, id: createId("PRD") };
       setPersistedData((current) => ({
         ...current,
-        products: [...current.products, { ...input, id: createId("PRD") }]
-      }));
+        products: [...current.products, product]
+      }), () => mutateClinicResource("products", "POST", product));
     },
     updateProduct: (id: string, input: ProductInput) => {
+      const product = { ...input, id };
       setPersistedData((current) => ({
         ...current,
         products: current.products.map((item) => (item.id === id ? { ...input, id } : item))
-      }));
+      }), () => mutateClinicResource("products", "PUT", product, id));
     },
     deleteProduct: (id: string) => {
       setPersistedData((current) => ({
         ...current,
         products: current.products.filter((item) => item.id !== id)
-      }));
+      }), () => mutateClinicResource("products", "DELETE", undefined, id));
     },
     createProfessional: (input: ProfessionalInput) => {
+      const professional = { ...input, id: createId("PRO") };
       setPersistedData((current) => ({
         ...current,
-        professionals: [...current.professionals, { ...input, id: createId("PRO") }]
-      }));
+        professionals: [...current.professionals, professional]
+      }), () => mutateClinicResource("professionals", "POST", professional));
     },
     updateProfessional: (id: string, input: ProfessionalInput) => {
+      const professional = { ...input, id };
       setPersistedData((current) => ({
         ...current,
         professionals: current.professionals.map((item) => (item.id === id ? { ...input, id } : item))
-      }));
+      }), () => mutateClinicResource("professionals", "PUT", professional, id));
     },
     deleteProfessional: (id: string) => {
       setPersistedData((current) => ({
@@ -645,118 +673,126 @@ export function useClinicData() {
         procedures: current.procedures.map((item) =>
           item.professionalId === id ? { ...item, professionalId: "" } : item
         )
-      }));
+      }), () => mutateClinicResource("professionals", "DELETE", undefined, id));
     },
     createAnamnesis: (input: AnamnesisInput) => {
+      let recordToCreate: AnamnesisRecord | null = null;
       setPersistedData((current) => {
         const versions = current.anamneses.filter((item) => item.patientId === input.patientId);
+        recordToCreate = {
+          ...input,
+          id: createId("ANA"),
+          version: versions.length + 1,
+          createdAt: toIsoStamp(),
+          updatedAt: toIsoStamp()
+        };
         return {
           ...current,
-          anamneses: [
-            ...current.anamneses,
-            {
-              ...input,
-              id: createId("ANA"),
-              version: versions.length + 1,
-              createdAt: toIsoStamp(),
-              updatedAt: toIsoStamp()
-            }
-          ]
+          anamneses: [...current.anamneses, recordToCreate as AnamnesisRecord]
         };
-      });
+      }, () => mutateClinicResource("anamneses", "POST", recordToCreate));
     },
     updateAnamnesis: (id: string, input: AnamnesisInput) => {
+      const existing = data.anamneses.find((item) => item.id === id);
+      const record = { ...existing, ...input, id, updatedAt: toIsoStamp() };
       setPersistedData((current) => ({
         ...current,
         anamneses: current.anamneses.map((item) =>
-          item.id === id ? { ...item, ...input, updatedAt: toIsoStamp() } : item
+          item.id === id ? { ...item, ...input, updatedAt: record.updatedAt } : item
         )
-      }));
+      }), () => mutateClinicResource("anamneses", "PUT", record, id));
     },
     deleteAnamnesis: (id: string) => {
       setPersistedData((current) => ({
         ...current,
         anamneses: current.anamneses.filter((item) => item.id !== id)
-      }));
+      }), () => mutateClinicResource("anamneses", "DELETE", undefined, id));
     },
     createContract: (input: ContractInput) => {
+      let recordToCreate: ContractRecord | null = null;
       setPersistedData((current) => {
         const versions = current.contracts.filter((item) => item.patientId === input.patientId);
+        recordToCreate = {
+          ...input,
+          id: createId("CON"),
+          version: versions.length + 1,
+          uploadedAt: toIsoStamp()
+        };
         return {
           ...current,
-          contracts: [
-            ...current.contracts,
-            {
-              ...input,
-              id: createId("CON"),
-              version: versions.length + 1,
-              uploadedAt: toIsoStamp()
-            }
-          ]
+          contracts: [...current.contracts, recordToCreate as ContractRecord]
         };
-      });
+      }, () => mutateClinicResource("contracts", "POST", recordToCreate));
     },
     updateContract: (id: string, input: ContractInput) => {
+      const existing = data.contracts.find((item) => item.id === id);
+      const record = { ...existing, ...input, id, uploadedAt: toIsoStamp() };
       setPersistedData((current) => ({
         ...current,
         contracts: current.contracts.map((item) =>
-          item.id === id ? { ...item, ...input, uploadedAt: toIsoStamp() } : item
+          item.id === id ? { ...item, ...input, uploadedAt: record.uploadedAt } : item
         )
-      }));
+      }), () => mutateClinicResource("contracts", "PUT", record, id));
     },
     deleteContract: (id: string) => {
       setPersistedData((current) => ({
         ...current,
         contracts: current.contracts.filter((item) => item.id !== id)
-      }));
+      }), () => mutateClinicResource("contracts", "DELETE", undefined, id));
     },
     createProcedure: (input: ProcedureInput) => {
+      const procedure = { ...input, id: createId("PRC") };
       setPersistedData((current) => ({
         ...current,
-        procedures: [...current.procedures, { ...input, id: createId("PRC") }]
-      }));
+        procedures: [...current.procedures, procedure]
+      }), () => mutateClinicResource("procedures", "POST", procedure));
     },
     updateProcedure: (id: string, input: ProcedureInput) => {
+      const procedure = { ...input, id };
       setPersistedData((current) => ({
         ...current,
         procedures: current.procedures.map((item) => (item.id === id ? { ...input, id } : item))
-      }));
+      }), () => mutateClinicResource("procedures", "PUT", procedure, id));
     },
     deleteProcedure: (id: string) => {
       setPersistedData((current) => ({
         ...current,
         procedures: current.procedures.filter((item) => item.id !== id)
-      }));
+      }), () => mutateClinicResource("procedures", "DELETE", undefined, id));
     },
     createPatientFile: (input: PatientFileInput) => {
+      const fileRecord = { ...input, id: createId("PFILE") };
       setPersistedData((current) => ({
         ...current,
-        patientFiles: [...current.patientFiles, { ...input, id: createId("PFILE") }]
-      }));
+        patientFiles: [...current.patientFiles, fileRecord]
+      }), () => mutateClinicResource("patientFiles", "POST", fileRecord));
     },
     updatePatientFile: (id: string, input: PatientFileInput) => {
+      const fileRecord = { ...input, id };
       setPersistedData((current) => ({
         ...current,
         patientFiles: current.patientFiles.map((item) => (item.id === id ? { ...input, id } : item))
-      }));
+      }), () => mutateClinicResource("patientFiles", "PUT", fileRecord, id));
     },
     deletePatientFile: (id: string) => {
       setPersistedData((current) => ({
         ...current,
         patientFiles: current.patientFiles.filter((item) => item.id !== id)
-      }));
+      }), () => mutateClinicResource("patientFiles", "DELETE", undefined, id));
     },
     createAppointment: (input: AppointmentInput) => {
+      const appointment = { ...input, id: createId("APT") };
       setPersistedData((current) => ({
         ...current,
-        appointments: [...current.appointments, { ...input, id: createId("APT") }]
-      }));
+        appointments: [...current.appointments, appointment]
+      }), () => mutateClinicResource("appointments", "POST", appointment));
     },
     updateAppointment: (id: string, input: AppointmentInput) => {
+      const appointment = { ...input, id };
       setPersistedData((current) => ({
         ...current,
         appointments: current.appointments.map((item) => (item.id === id ? { ...input, id } : item))
-      }));
+      }), () => mutateClinicResource("appointments", "PUT", appointment, id));
     },
     deleteAppointment: (id: string) => {
       setPersistedData((current) => ({
@@ -766,18 +802,20 @@ export function useClinicData() {
           item.appointmentId === id ? { ...item, appointmentId: undefined, updatedAt: toIsoStamp() } : item
         ),
         financialEntries: current.financialEntries.filter((item) => item.appointmentId !== id)
-      }));
+      }), () => mutateClinicResource("appointments", "DELETE", undefined, id));
     },
     createMedicalRecord: (input: MedicalRecordInput) => {
       const now = toIsoStamp();
       const id = createId("MR");
       const nextRecord = normalizeMedicalRecord({ ...input, id, createdAt: now, updatedAt: now });
+      const existingByAppointment = input.appointmentId
+        ? data.medicalRecords.find((item) => item.appointmentId === input.appointmentId)
+        : undefined;
+      const recordToPersist = existingByAppointment
+        ? { ...nextRecord, id: existingByAppointment.id, createdAt: existingByAppointment.createdAt, updatedAt: now }
+        : nextRecord;
 
       setPersistedData((current) => {
-        const existingByAppointment = input.appointmentId
-          ? current.medicalRecords.find((item) => item.appointmentId === input.appointmentId)
-          : undefined;
-
         if (existingByAppointment) {
           return {
             ...current,
@@ -793,7 +831,14 @@ export function useClinicData() {
           ...current,
           medicalRecords: [nextRecord, ...current.medicalRecords]
         };
-      });
+      }, () =>
+        mutateClinicResource(
+          "medicalRecords",
+          existingByAppointment ? "PUT" : "POST",
+          recordToPersist,
+          existingByAppointment?.id
+        )
+      );
 
       return id;
     },

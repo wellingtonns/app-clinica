@@ -599,6 +599,100 @@ function sanitizeMedicalRecord(record) {
   };
 }
 
+function getQuery(req, key) {
+  if (typeof req.query?.[key] === "string") return req.query[key];
+  const params = new URL(req.url, "http://localhost").searchParams;
+  return params.get(key) ?? "";
+}
+
+const resourceConfig = {
+  patients: { model: "patient", sanitize: sanitizePatient },
+  products: { model: "product", sanitize: sanitizeProduct },
+  professionals: { model: "professional", sanitize: sanitizeProfessional },
+  appointments: { model: "appointment", sanitize: sanitizeAppointment },
+  anamneses: { model: "anamnesisRecord", sanitize: sanitizeAnamnesis },
+  contracts: { model: "contractRecord", sanitize: sanitizeContract },
+  procedures: { model: "procedureRecord", sanitize: sanitizeProcedure },
+  patientFiles: { model: "patientFileRecord", sanitize: sanitizePatientFile },
+  medicalRecords: { model: "medicalRecord", sanitize: sanitizeMedicalRecord },
+  financialEntries: { model: "financialEntry", sanitize: sanitizeFinancialEntry }
+};
+
+function prismaErrorStatus(error) {
+  if (error?.code === "P2025") return 404;
+  if (error?.code === "P2003") return 409;
+  return 500;
+}
+
+function prismaErrorMessage(error) {
+  if (error?.code === "P2025") return "Registro não encontrado.";
+  if (error?.code === "P2003") return "Este registro possui vínculos e não pode ser excluído.";
+  return "Não foi possível persistir o registro.";
+}
+
+async function mutateResource(req, res) {
+  const resource = getQuery(req, "resource");
+  const id = getQuery(req, "id");
+  const config = resourceConfig[resource];
+
+  if (!config) {
+    return json(res, 400, { error: "Recurso inválido." });
+  }
+
+  try {
+    if (req.method === "POST") {
+      const body = await readBody(req);
+      const created = await prisma[config.model].create({ data: config.sanitize(body) });
+      clearClinicStateCache();
+      return json(res, 201, created);
+    }
+
+    if (req.method === "PUT" || req.method === "PATCH") {
+      const body = await readBody(req);
+      const recordId = id || body.id;
+      if (!recordId) return json(res, 400, { error: "Id não informado." });
+
+      const data = config.sanitize({ ...body, id: recordId });
+      delete data.id;
+
+      const updated = await prisma[config.model].update({
+        where: { id: String(recordId) },
+        data
+      });
+      clearClinicStateCache();
+      return json(res, 200, updated);
+    }
+
+    if (req.method === "DELETE") {
+      if (!id) return json(res, 400, { error: "Id não informado." });
+
+      await prisma[config.model].delete({ where: { id: String(id) } });
+      clearClinicStateCache();
+      return json(res, 200, { ok: true, id });
+    }
+
+    res.setHeader("Allow", "GET, POST, PUT, PATCH, DELETE");
+    return json(res, 405, { error: "Método não permitido." });
+  } catch (error) {
+    const status = prismaErrorStatus(error);
+    console.error(`[clinic:${resource}:${req.method.toLowerCase()}] Failed to mutate resource`, {
+      resource,
+      id,
+      error
+    });
+    return json(
+      res,
+      status,
+      errorPayload(prismaErrorMessage(error), error, {
+        endpoint: "/api/clinic",
+        method: req.method,
+        resource,
+        id
+      })
+    );
+  }
+}
+
 async function replaceClinicState(state) {
   const patients = toArray(state.patients);
   const products = toArray(state.products);
@@ -653,6 +747,10 @@ export default async function handler(req, res) {
       return json(res, 401, { error: "Sessão não encontrada." });
     }
 
+    if (getQuery(req, "resource")) {
+      return mutateResource(req, res);
+    }
+
     if (req.method === "GET") {
       return json(res, 200, await getClinicState());
     }
@@ -677,7 +775,7 @@ export default async function handler(req, res) {
       return empty(res, 204);
     }
 
-    res.setHeader("Allow", "GET, PUT");
+    res.setHeader("Allow", "GET, POST, PUT, PATCH, DELETE");
     return json(res, 405, { error: "Método não permitido." });
   } catch (error) {
     clearClinicStateCache();
