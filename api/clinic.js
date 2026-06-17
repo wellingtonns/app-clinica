@@ -1,5 +1,12 @@
 import { prisma } from "./_prisma.js";
 import { getSessionToken, verifySessionToken } from "./auth/_utils.js";
+import {
+  getClinicCache,
+  getClinicCacheTtl,
+  invalidateClinicCache,
+  normalizeClinicScope,
+  setClinicCache
+} from "./_lib/clinicCache.js";
 
 const globalForClinicCache = globalThis;
 const clinicStateCacheTtlMs = 0;
@@ -26,7 +33,7 @@ const clinicStateCollections = [
   "financialEntries"
 ];
 
-function json(res, status, payload, cacheControl = "no-store, max-age=0") {
+function json(res, status, payload, cacheControl = "no-store, no-cache, must-revalidate, proxy-revalidate") {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json");
   res.setHeader("Cache-Control", cacheControl);
@@ -52,7 +59,7 @@ function errorPayload(message, error, context = {}) {
 
 function empty(res, status) {
   res.statusCode = status;
-  res.setHeader("Cache-Control", "no-store, max-age=0");
+  res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
   res.end();
 }
 
@@ -293,6 +300,10 @@ function stockMovementFromProduct(product) {
 }
 
 function clinicScopeCollections(scope) {
+  if (scope === "full") {
+    return new Set(clinicStateCollections);
+  }
+
   if (scope === "dashboard") {
     return new Set(["patients", "products", "professionals", "anamneses", "appointments", "financialEntries"]);
   }
@@ -341,7 +352,7 @@ async function getClinicState(options = {}) {
   const now = Date.now();
   const scope = options.scope ?? "all";
 
-  if (scope !== "all") {
+  if (scope !== "all" && scope !== "full") {
     return loadClinicStateFromDatabase(options);
   }
 
@@ -712,6 +723,44 @@ function getQuery(req, key) {
   return params.get(key) ?? "";
 }
 
+function resolveClinicId(session) {
+  return String(session?.clinicId ?? session?.clinic_id ?? session?.sub ?? "default");
+}
+
+function getRequestCacheScope(req) {
+  const scope = normalizeClinicScope(getQuery(req, "scope") || "full");
+  const patientId = getQuery(req, "id");
+  return scope === "patient-detail" && patientId ? `patient-detail:${patientId}` : scope;
+}
+
+async function getClinicStateWithRedis(req, clinicId) {
+  const scope = normalizeClinicScope(getQuery(req, "scope") || "full");
+  const patientId = getQuery(req, "id");
+  const cacheScope = getRequestCacheScope(req);
+  const totalStartedAt = Date.now();
+  console.log(`[clinic:get] total start scope=${cacheScope} clinicId=${clinicId}`);
+
+  const redisStartedAt = Date.now();
+  const cached = await getClinicCache(clinicId, cacheScope);
+  console.log(`[clinic:get] redis ${Date.now() - redisStartedAt}ms scope=${cacheScope} clinicId=${clinicId} hit=${Boolean(cached)}`);
+
+  if (cached) {
+    console.log(`[clinic:get] total ${Date.now() - totalStartedAt}ms scope=${cacheScope} clinicId=${clinicId} source=redis`);
+    return cached;
+  }
+
+  const databaseStartedAt = Date.now();
+  const state = await getClinicState({ scope, patientId });
+  console.log(`[clinic:get] database ${Date.now() - databaseStartedAt}ms scope=${cacheScope} clinicId=${clinicId}`);
+
+  const redisSetStartedAt = Date.now();
+  await setClinicCache(clinicId, cacheScope, state, getClinicCacheTtl(cacheScope));
+  console.log(`[clinic:get] redis:set ${Date.now() - redisSetStartedAt}ms scope=${cacheScope} clinicId=${clinicId}`);
+  console.log(`[clinic:get] total ${Date.now() - totalStartedAt}ms scope=${cacheScope} clinicId=${clinicId} source=database`);
+
+  return state;
+}
+
 const resourceConfig = {
   patients: { model: "patient", sanitize: sanitizePatient },
   products: { model: "product", sanitize: sanitizeProduct },
@@ -737,7 +786,7 @@ function prismaErrorMessage(error) {
   return "Não foi possível persistir o registro.";
 }
 
-async function mutateResource(req, res) {
+async function mutateResource(req, res, clinicId) {
   const resource = getQuery(req, "resource");
   const id = getQuery(req, "id");
   const config = resourceConfig[resource];
@@ -751,6 +800,7 @@ async function mutateResource(req, res) {
       const body = await readBody(req);
       const created = await prisma[config.model].create({ data: config.sanitize(body) });
       clearClinicStateCache();
+      await invalidateClinicCache(clinicId, resource, created);
       return json(res, 201, created);
     }
 
@@ -767,14 +817,16 @@ async function mutateResource(req, res) {
         data
       });
       clearClinicStateCache();
+      await invalidateClinicCache(clinicId, resource, updated);
       return json(res, 200, updated);
     }
 
     if (req.method === "DELETE") {
       if (!id) return json(res, 400, { error: "Id não informado." });
 
-      await prisma[config.model].delete({ where: { id: String(id) } });
+      const deleted = await prisma[config.model].delete({ where: { id: String(id) } });
       clearClinicStateCache();
+      await invalidateClinicCache(clinicId, resource, deleted);
       return json(res, 200, { ok: true, id });
     }
 
@@ -854,12 +906,14 @@ export default async function handler(req, res) {
       return json(res, 401, { error: "Sessão não encontrada." });
     }
 
+    const clinicId = resolveClinicId(session);
+
     if (getQuery(req, "resource")) {
-      return mutateResource(req, res);
+      return mutateResource(req, res, clinicId);
     }
 
     if (req.method === "GET") {
-      return json(res, 200, await getClinicState({ scope: getQuery(req, "scope") || "all", patientId: getQuery(req, "id") }));
+      return json(res, 200, await getClinicStateWithRedis(req, clinicId));
     }
 
     if (req.method === "PUT") {
@@ -879,6 +933,7 @@ export default async function handler(req, res) {
       }
 
       clearClinicStateCache();
+      await invalidateClinicCache(clinicId, "all");
       return empty(res, 204);
     }
 

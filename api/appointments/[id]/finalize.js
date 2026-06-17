@@ -1,5 +1,6 @@
 import { prisma } from "../../_prisma.js";
 import { getSessionToken, verifySessionToken } from "../../auth/_utils.js";
+import { invalidateClinicCache } from "../../_lib/clinicCache.js";
 
 function json(res, status, payload) {
   res.statusCode = status;
@@ -34,6 +35,10 @@ function getId(req) {
   if (typeof req.query?.id === "string") return req.query.id;
   const parts = new URL(req.url, "http://localhost").pathname.split("/").filter(Boolean);
   return parts[parts.length - 2] ?? "";
+}
+
+function resolveClinicId(session) {
+  return String(session?.clinicId ?? session?.clinic_id ?? session?.sub ?? "default");
 }
 
 function calculateDurationMinutes(startedAt, finishedAt) {
@@ -127,6 +132,13 @@ export default async function handler(req, res) {
           });
 
       return { appointment: updatedAppointment, medicalRecord };
+    });
+
+    await invalidateClinicCache(resolveClinicId(session), "medicalRecords", {
+      patientId: result.medicalRecord.patientId
+    });
+    await invalidateClinicCache(resolveClinicId(session), "appointments", {
+      patientId: result.medicalRecord.patientId
     });
 
     return json(res, 200, result);

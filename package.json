@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@prisma/client": "6.19.3",
+    "@upstash/redis": "latest",
     "@vercel/blob": "latest",
     "bcryptjs": "^3.0.2",
     "jsonwebtoken": "^9.0.2",
