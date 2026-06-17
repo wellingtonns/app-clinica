@@ -481,7 +481,11 @@ async function saveClinicData(data: PersistedClinicData) {
     body: JSON.stringify(data)
   });
 
-  if (!response.ok) throw new Error("Não foi possível salvar os dados.");
+  if (!response.ok) {
+    const payload = await response.json().catch(() => null);
+    const debugMessage = payload?.debug?.message ? ` Detalhe: ${payload.debug.message}` : "";
+    throw new Error(`${payload?.error ?? "Não foi possível salvar os dados."}${debugMessage}`);
+  }
 }
 
 export function useClinicData() {
@@ -548,9 +552,10 @@ export function useClinicData() {
           console.error(error);
           markClinicDataVersion();
           setData(previous);
-          setLoadError("Não foi possível salvar no banco. A alteração foi desfeita.");
+          const message = error instanceof Error ? error.message : "Não foi possível salvar no banco.";
+          setLoadError(`${message} A alteração foi desfeita.`);
           if (typeof window !== "undefined") {
-            window.alert("Não foi possível salvar no banco. A alteração foi desfeita.");
+            window.alert(`${message} A alteração foi desfeita.`);
           }
         });
       return next;

@@ -33,6 +33,23 @@ function json(res, status, payload, cacheControl = "no-store, max-age=0") {
   res.end(JSON.stringify(payload));
 }
 
+function errorPayload(message, error, context = {}) {
+  const isProduction = process.env.NODE_ENV === "production";
+  return {
+    error: message,
+    ...(isProduction
+      ? {}
+      : {
+          debug: {
+            ...context,
+            code: error?.code,
+            message: error?.message,
+            meta: error?.meta
+          }
+        })
+  };
+}
+
 function empty(res, status) {
   res.statusCode = status;
   res.setHeader("Cache-Control", "no-store, max-age=0");
@@ -382,6 +399,206 @@ async function createMany(tx, model, data) {
   await tx[model].createMany({ data });
 }
 
+function toNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function toNullableInt(value) {
+  if (value === null || value === undefined || value === "") return null;
+  const number = Number(value);
+  return Number.isInteger(number) ? number : null;
+}
+
+function sanitizePatient(patient) {
+  return {
+    id: String(patient.id),
+    fullName: String(patient.fullName ?? ""),
+    birthDate: String(patient.birthDate ?? ""),
+    cpf: String(patient.cpf ?? ""),
+    phone: String(patient.phone ?? ""),
+    email: String(patient.email ?? ""),
+    address: String(patient.address ?? ""),
+    generalObservations: String(patient.generalObservations ?? ""),
+    allergySummary: String(patient.allergySummary ?? ""),
+    restrictionSummary: String(patient.restrictionSummary ?? ""),
+    status: String(patient.status ?? "Ativo"),
+    createdAt: String(patient.createdAt ?? new Date().toISOString()),
+    updatedAt: String(patient.updatedAt ?? new Date().toISOString())
+  };
+}
+
+function sanitizeProfessional(professional) {
+  return {
+    id: String(professional.id),
+    name: String(professional.name ?? ""),
+    specialty: String(professional.specialty ?? ""),
+    role: String(professional.role ?? "Profissional"),
+    commissionRate: String(professional.commissionRate ?? ""),
+    nextShift: String(professional.nextShift ?? ""),
+    phone: String(professional.phone ?? ""),
+    email: String(professional.email ?? ""),
+    council: String(professional.council ?? ""),
+    status: String(professional.status ?? "Ativo")
+  };
+}
+
+function sanitizeProduct(product) {
+  return {
+    id: String(product.id),
+    name: String(product.name ?? ""),
+    category: String(product.category ?? ""),
+    sku: String(product.sku ?? ""),
+    batch: String(product.batch ?? ""),
+    expiry: String(product.expiry ?? ""),
+    price: toNumber(product.price),
+    stock: toNumber(product.stock),
+    minimumStock: toNumber(product.minimumStock),
+    unit: String(product.unit ?? ""),
+    unitCost: toNumber(product.unitCost),
+    purchaseDate: String(product.purchaseDate ?? ""),
+    supplier: String(product.supplier ?? ""),
+    description: String(product.description ?? "")
+  };
+}
+
+function sanitizeAppointment(appointment) {
+  return {
+    id: String(appointment.id),
+    patientId: String(appointment.patientId),
+    professionalId: String(appointment.professionalId),
+    procedure: String(appointment.procedure ?? ""),
+    date: String(appointment.date ?? ""),
+    time: String(appointment.time ?? ""),
+    originalDate: appointment.originalDate ?? null,
+    originalTime: appointment.originalTime ?? null,
+    rescheduleReason: appointment.rescheduleReason ?? null,
+    isRescheduled: Boolean(appointment.isRescheduled),
+    durationMinutes: toNumber(appointment.durationMinutes, 60),
+    status: String(appointment.status ?? "Agendado"),
+    paymentStatus: String(appointment.paymentStatus ?? "Pendente"),
+    paymentMethod: String(appointment.paymentMethod ?? ""),
+    paymentDate: String(appointment.paymentDate ?? ""),
+    paidAmount: toNumber(appointment.paidAmount),
+    installments: toNullableInt(appointment.installments),
+    notes: String(appointment.notes ?? ""),
+    price: toNumber(appointment.price),
+    history: Array.isArray(appointment.history) ? appointment.history : [],
+    attendanceStartedAt: String(appointment.attendanceStartedAt ?? ""),
+    attendanceFinishedAt: String(appointment.attendanceFinishedAt ?? ""),
+    attendanceDurationMinutes: toNullableInt(appointment.attendanceDurationMinutes),
+    attendanceProcedureDescription: String(appointment.attendanceProcedureDescription ?? ""),
+    attendanceProductsUsed: String(appointment.attendanceProductsUsed ?? ""),
+    attendanceClinicalNotes: String(appointment.attendanceClinicalNotes ?? ""),
+    attendancePostProcedureRecommendations: String(appointment.attendancePostProcedureRecommendations ?? ""),
+    attendanceNextReturn: String(appointment.attendanceNextReturn ?? ""),
+    attendanceEvolution: String(appointment.attendanceEvolution ?? "")
+  };
+}
+
+function sanitizeFinancialEntry(entry) {
+  return {
+    id: String(entry.id),
+    type: String(entry.type ?? "Receita"),
+    appointmentId: entry.appointmentId ?? null,
+    productId: entry.productId ?? null,
+    patientId: entry.patientId ?? null,
+    procedure: entry.procedure ?? null,
+    productName: entry.productName ?? null,
+    description: String(entry.description ?? ""),
+    date: String(entry.date ?? ""),
+    amount: toNumber(entry.amount),
+    paidAmount: toNumber(entry.paidAmount),
+    balanceAmount: toNumber(entry.balanceAmount),
+    status: String(entry.status ?? "Pendente"),
+    paymentMethod: String(entry.paymentMethod ?? ""),
+    paymentDate: String(entry.paymentDate ?? ""),
+    installments: toNullableInt(entry.installments),
+    source: String(entry.source ?? "Lançamento manual")
+  };
+}
+
+function sanitizeAnamnesis(record) {
+  return {
+    id: String(record.id),
+    patientId: String(record.patientId),
+    version: toNumber(record.version, 1),
+    createdAt: String(record.createdAt ?? new Date().toISOString()),
+    updatedAt: String(record.updatedAt ?? new Date().toISOString()),
+    updatedBy: String(record.updatedBy ?? ""),
+    healthHistory: String(record.healthHistory ?? ""),
+    priorDiseases: String(record.priorDiseases ?? ""),
+    surgeries: String(record.surgeries ?? ""),
+    treatments: String(record.treatments ?? ""),
+    allergies: String(record.allergies ?? ""),
+    medications: String(record.medications ?? ""),
+    habits: String(record.habits ?? ""),
+    mainComplaint: String(record.mainComplaint ?? ""),
+    professionalObservations: String(record.professionalObservations ?? ""),
+    checkboxes: record.checkboxes ?? {},
+    attachments: Array.isArray(record.attachments) ? record.attachments : []
+  };
+}
+
+function sanitizeContract(record) {
+  return {
+    id: String(record.id),
+    patientId: String(record.patientId),
+    version: toNumber(record.version, 1),
+    contractType: String(record.contractType ?? ""),
+    signedAt: String(record.signedAt ?? ""),
+    observations: String(record.observations ?? ""),
+    file: record.file ?? {},
+    uploadedAt: String(record.uploadedAt ?? new Date().toISOString())
+  };
+}
+
+function sanitizeProcedure(record) {
+  return {
+    id: String(record.id),
+    patientId: String(record.patientId),
+    name: String(record.name ?? ""),
+    procedureType: String(record.procedureType ?? ""),
+    date: String(record.date ?? ""),
+    professionalId: record.professionalId || null,
+    observations: String(record.observations ?? ""),
+    photos: Array.isArray(record.photos) ? record.photos : []
+  };
+}
+
+function sanitizePatientFile(record) {
+  return {
+    id: String(record.id),
+    patientId: String(record.patientId),
+    category: String(record.category ?? "Geral"),
+    description: String(record.description ?? ""),
+    file: record.file ?? {}
+  };
+}
+
+function sanitizeMedicalRecord(record) {
+  return {
+    id: String(record.id),
+    patientId: String(record.patientId),
+    appointmentId: record.appointmentId ?? null,
+    professionalId: record.professionalId ?? null,
+    date: String(record.date ?? ""),
+    scheduledTime: String(record.scheduledTime ?? ""),
+    status: String(record.status ?? "Finalizado"),
+    procedure: String(record.procedure ?? ""),
+    startedAt: String(record.startedAt ?? ""),
+    finishedAt: String(record.finishedAt ?? ""),
+    durationMinutes: toNullableInt(record.durationMinutes),
+    clinicalNotes: String(record.clinicalNotes ?? ""),
+    recommendations: String(record.recommendations ?? ""),
+    productsUsed: String(record.productsUsed ?? ""),
+    nextReturn: String(record.nextReturn ?? ""),
+    evolution: String(record.evolution ?? ""),
+    createdAt: String(record.createdAt ?? new Date().toISOString()),
+    updatedAt: String(record.updatedAt ?? new Date().toISOString())
+  };
+}
+
 async function replaceClinicState(state) {
   const patients = toArray(state.patients);
   const products = toArray(state.products);
@@ -408,108 +625,24 @@ async function replaceClinicState(state) {
     await tx.professional.deleteMany();
     await tx.patient.deleteMany();
 
-    await createMany(tx, "patient", patients);
-    await createMany(tx, "professional", professionals);
-    await createMany(tx, "product", products);
-    await createMany(
-      tx,
-      "appointment",
-      appointments.map((appointment) => ({
-        ...appointment,
-        paymentStatus: appointment.paymentStatus ?? "Pendente",
-        paymentMethod: appointment.paymentMethod ?? "",
-        paymentDate: appointment.paymentDate ?? "",
-        paidAmount: appointment.paidAmount ?? 0,
-        installments: appointment.installments ?? null,
-        originalDate: appointment.originalDate ?? null,
-        originalTime: appointment.originalTime ?? null,
-        rescheduleReason: appointment.rescheduleReason ?? null,
-        isRescheduled: Boolean(appointment.isRescheduled),
-        history: appointment.history ?? [],
-        attendanceStartedAt: appointment.attendanceStartedAt ?? "",
-        attendanceFinishedAt: appointment.attendanceFinishedAt ?? "",
-        attendanceDurationMinutes: appointment.attendanceDurationMinutes ?? null,
-        attendanceProcedureDescription: appointment.attendanceProcedureDescription ?? "",
-        attendanceProductsUsed: appointment.attendanceProductsUsed ?? "",
-        attendanceClinicalNotes: appointment.attendanceClinicalNotes ?? "",
-        attendancePostProcedureRecommendations: appointment.attendancePostProcedureRecommendations ?? "",
-        attendanceNextReturn: appointment.attendanceNextReturn ?? "",
-        attendanceEvolution: appointment.attendanceEvolution ?? ""
-      }))
-    );
-    await createMany(tx, "payment", appointments.map(paymentFromAppointment));
-    await createMany(
-      tx,
-      "financialEntry",
-      financialEntries.map((entry) => ({
-        ...entry,
-        appointmentId: entry.appointmentId ?? null,
-        productId: entry.productId ?? null,
-        patientId: entry.patientId ?? null,
-        procedure: entry.procedure ?? null,
-        productName: entry.productName ?? null,
-        installments: entry.installments ?? null
-      }))
-    );
-    await createMany(tx, "stockMovement", products.map(stockMovementFromProduct));
-    await createMany(
-      tx,
-      "anamnesisRecord",
-      anamneses.map((record) => ({
-        ...record,
-        checkboxes: record.checkboxes ?? {},
-        attachments: record.attachments ?? []
-      }))
-    );
-    await createMany(
-      tx,
-      "contractRecord",
-      contracts.map((record) => ({
-        ...record,
-        file: record.file ?? {}
-      }))
-    );
-    await createMany(
-      tx,
-      "procedureRecord",
-      procedures.map((record) => ({
-        ...record,
-        professionalId: record.professionalId || null,
-        photos: record.photos ?? []
-      }))
-    );
-    await createMany(
-      tx,
-      "patientFileRecord",
-      patientFiles.map((record) => ({
-        ...record,
-        file: record.file ?? {}
-      }))
-    );
-    await createMany(
-      tx,
-      "medicalRecord",
-      medicalRecords.map((record) => ({
-        id: record.id,
-        patientId: record.patientId,
-        appointmentId: record.appointmentId ?? null,
-        professionalId: record.professionalId ?? null,
-        date: record.date,
-        scheduledTime: record.scheduledTime ?? "",
-        status: record.status ?? "Finalizado",
-        procedure: record.procedure ?? "",
-        startedAt: record.startedAt ?? "",
-        finishedAt: record.finishedAt ?? "",
-        durationMinutes: record.durationMinutes ?? null,
-        clinicalNotes: record.clinicalNotes ?? "",
-        recommendations: record.recommendations ?? "",
-        productsUsed: record.productsUsed ?? "",
-        nextReturn: record.nextReturn ?? "",
-        evolution: record.evolution ?? "",
-        createdAt: record.createdAt,
-        updatedAt: record.updatedAt
-      }))
-    );
+    const sanitizedPatients = patients.map(sanitizePatient);
+    const sanitizedProfessionals = professionals.map(sanitizeProfessional);
+    const sanitizedProducts = products.map(sanitizeProduct);
+    const sanitizedAppointments = appointments.map(sanitizeAppointment);
+    const sanitizedFinancialEntries = financialEntries.map(sanitizeFinancialEntry);
+
+    await createMany(tx, "patient", sanitizedPatients);
+    await createMany(tx, "professional", sanitizedProfessionals);
+    await createMany(tx, "product", sanitizedProducts);
+    await createMany(tx, "appointment", sanitizedAppointments);
+    await createMany(tx, "payment", sanitizedAppointments.map(paymentFromAppointment));
+    await createMany(tx, "financialEntry", sanitizedFinancialEntries);
+    await createMany(tx, "stockMovement", sanitizedProducts.map(stockMovementFromProduct));
+    await createMany(tx, "anamnesisRecord", anamneses.map(sanitizeAnamnesis));
+    await createMany(tx, "contractRecord", contracts.map(sanitizeContract));
+    await createMany(tx, "procedureRecord", procedures.map(sanitizeProcedure));
+    await createMany(tx, "patientFileRecord", patientFiles.map(sanitizePatientFile));
+    await createMany(tx, "medicalRecord", medicalRecords.map(sanitizeMedicalRecord));
   });
 }
 
@@ -530,8 +663,17 @@ export default async function handler(req, res) {
         return json(res, 400, { error: "Payload de dados da clínica incompleto." });
       }
 
-      await replaceClinicState(body);
-      updateClinicStateCache(body);
+      try {
+        await replaceClinicState(body);
+      } catch (error) {
+        console.error("[clinic:replace] Failed to persist clinic state", {
+          collections: Object.fromEntries(clinicStateCollections.map((collection) => [collection, toArray(body[collection]).length])),
+          error
+        });
+        return json(res, 500, errorPayload("Não foi possível salvar os dados da clínica.", error, { endpoint: "/api/clinic", method: "PUT" }));
+      }
+
+      clearClinicStateCache();
       return empty(res, 204);
     }
 
@@ -539,7 +681,7 @@ export default async function handler(req, res) {
     return json(res, 405, { error: "Método não permitido." });
   } catch (error) {
     clearClinicStateCache();
-    console.error(error);
-    return json(res, 500, { error: "Não foi possível acessar os dados da clínica." });
+    console.error("[clinic] Failed to process request", { method: req.method, error });
+    return json(res, 500, errorPayload("Não foi possível acessar os dados da clínica.", error, { endpoint: "/api/clinic", method: req.method }));
   }
 }
