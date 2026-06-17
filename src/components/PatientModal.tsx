@@ -549,12 +549,21 @@ export function PatientModal({
     return true;
   };
 
-  const handleUpload = async (event: ChangeEvent<HTMLInputElement>, onLoaded: (assets: StoredAsset[]) => void) => {
+  const handleUpload = async (
+    event: ChangeEvent<HTMLInputElement>,
+    onLoaded: (assets: StoredAsset[]) => void,
+    folder: "anamneses" | "contracts" | "procedures" | "patient-files" = "patient-files"
+  ) => {
     const files = event.target.files;
     if (!files?.length) return;
-    const assets = await filesToStoredAssets(files);
-    onLoaded(assets);
-    event.target.value = "";
+    try {
+      const assets = await filesToStoredAssets(files, "", { patientId: patientId || "draft", folder });
+      onLoaded(assets);
+      event.target.value = "";
+    } catch (error) {
+      console.error(error);
+      setError(error instanceof Error ? error.message : "Não foi possível enviar o arquivo.");
+    }
   };
 
   const saveAnamnesis = (goNext: boolean) => {
@@ -944,8 +953,11 @@ export function PatientModal({
                     type="file"
                     multiple
                     onChange={(event) =>
-                      handleUpload(event, (assets) =>
-                        setAnamnesisForm({ ...anamnesisForm, attachments: [...anamnesisForm.attachments, ...assets] })
+                      handleUpload(
+                        event,
+                        (assets) =>
+                          setAnamnesisForm({ ...anamnesisForm, attachments: [...anamnesisForm.attachments, ...assets] }),
+                        "anamneses"
                       )
                     }
                   />
@@ -1071,7 +1083,7 @@ export function PatientModal({
                   </label>
                   <label>
                     <span>Enviar PDF/JPG/PNG</span>
-                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(event) => handleUpload(event, (assets) => setContractForm({ ...contractForm, file: assets[0] ?? contractForm.file }))} />
+                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(event) => handleUpload(event, (assets) => setContractForm({ ...contractForm, file: assets[0] ?? contractForm.file }), "contracts")} />
                   </label>
                   <div className="contract-preview-card">
                     <div className="panel-header">
@@ -1115,7 +1127,7 @@ export function PatientModal({
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png"
                     className="hidden-input"
-                    onChange={(event) => handleUpload(event, (assets) => setContractForm({ ...contractForm, file: assets[0] ?? contractForm.file }))}
+                    onChange={(event) => handleUpload(event, (assets) => setContractForm({ ...contractForm, file: assets[0] ?? contractForm.file }), "contracts")}
                   />
                 </div>
 
@@ -1227,20 +1239,23 @@ export function PatientModal({
                     accept=".jpg,.jpeg,.png,.webp,.svg"
                     multiple
                     onChange={(event) =>
-                      handleUpload(event, (assets) =>
-                        setProcedureForm({
-                          ...procedureForm,
-                          photos: [
-                            ...procedureForm.photos,
-                            ...assets.map((asset) => ({
-                              ...asset,
-                              category: photoMeta.category,
-                              area: photoMeta.area,
-                              description: photoMeta.description || asset.description,
-                              capturedAt: photoMeta.capturedAt
-                            }))
-                          ]
-                        })
+                      handleUpload(
+                        event,
+                        (assets) =>
+                          setProcedureForm({
+                            ...procedureForm,
+                            photos: [
+                              ...procedureForm.photos,
+                              ...assets.map((asset) => ({
+                                ...asset,
+                                category: photoMeta.category,
+                                area: photoMeta.area,
+                                description: photoMeta.description || asset.description,
+                                capturedAt: photoMeta.capturedAt
+                              }))
+                            ]
+                          }),
+                        "procedures"
                       )
                     }
                   />

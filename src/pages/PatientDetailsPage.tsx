@@ -294,13 +294,19 @@ export function PatientDetailsPage({
 
   const handleAssetUpload = async (
     event: ChangeEvent<HTMLInputElement>,
-    onLoaded: (assets: StoredAsset[]) => void
+    onLoaded: (assets: StoredAsset[]) => void,
+    folder: "anamneses" | "contracts" | "procedures" | "patient-files" = "patient-files"
   ) => {
     const files = event.target.files;
     if (!files?.length) return;
-    const assets = await filesToStoredAssets(files);
-    onLoaded(assets);
-    event.target.value = "";
+    try {
+      const assets = await filesToStoredAssets(files, "", { patientId, folder });
+      onLoaded(assets);
+      event.target.value = "";
+    } catch (error) {
+      console.error(error);
+      window.alert(error instanceof Error ? error.message : "Não foi possível enviar o arquivo.");
+    }
   };
 
   const submitAnamnesis = (event: FormEvent<HTMLFormElement>) => {
@@ -656,11 +662,14 @@ export function PatientDetailsPage({
                   type="file"
                   multiple
                   onChange={(event) =>
-                    handleAssetUpload(event, (assets) =>
-                      setAnamnesisForm({
-                        ...anamnesisForm,
-                        attachments: [...anamnesisForm.attachments, ...assets]
-                      })
+                    handleAssetUpload(
+                      event,
+                      (assets) =>
+                        setAnamnesisForm({
+                          ...anamnesisForm,
+                          attachments: [...anamnesisForm.attachments, ...assets]
+                        }),
+                      "anamneses"
                     )
                   }
                 />
@@ -831,8 +840,10 @@ export function PatientDetailsPage({
                   type="file"
                   accept=".pdf,.jpg,.jpeg,.png"
                   onChange={(event) =>
-                    handleAssetUpload(event, (assets) =>
-                      setContractForm({ ...contractForm, file: assets[0] ?? contractForm.file })
+                    handleAssetUpload(
+                      event,
+                      (assets) => setContractForm({ ...contractForm, file: assets[0] ?? contractForm.file }),
+                      "contracts"
                     )
                   }
                 />
@@ -1009,20 +1020,23 @@ export function PatientDetailsPage({
                     accept=".jpg,.jpeg,.png,.webp,.svg"
                     multiple
                     onChange={(event) =>
-                      handleAssetUpload(event, (assets) =>
-                        setProcedureForm({
-                          ...procedureForm,
-                          photos: [
-                            ...procedureForm.photos,
-                            ...assets.map((asset) => ({
-                              ...asset,
-                              category: photoUploadMeta.category,
-                              description: photoUploadMeta.description || asset.description,
-                              capturedAt: photoUploadMeta.capturedAt,
-                              area: photoUploadMeta.area
-                            }))
-                          ]
-                        })
+                      handleAssetUpload(
+                        event,
+                        (assets) =>
+                          setProcedureForm({
+                            ...procedureForm,
+                            photos: [
+                              ...procedureForm.photos,
+                              ...assets.map((asset) => ({
+                                ...asset,
+                                category: photoUploadMeta.category,
+                                description: photoUploadMeta.description || asset.description,
+                                capturedAt: photoUploadMeta.capturedAt,
+                                area: photoUploadMeta.area
+                              }))
+                            ]
+                          }),
+                        "procedures"
                       )
                     }
                   />
@@ -1254,7 +1268,7 @@ export function PatientDetailsPage({
                   type="file"
                   multiple={!fileEditingId}
                   onChange={(event) =>
-                    handleAssetUpload(event, (assets) => setFileForm({ ...fileForm, assets }))
+                    handleAssetUpload(event, (assets) => setFileForm({ ...fileForm, assets }), "patient-files")
                   }
                 />
               </label>

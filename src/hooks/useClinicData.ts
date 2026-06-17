@@ -544,6 +544,7 @@ export function useClinicData() {
   const [data, setData] = useState<PersistedClinicData>(initialData ?? emptyClinicData);
   const [isLoading, setIsLoading] = useState(!initialData);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [hasFreshServerData, setHasFreshServerData] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -554,11 +555,13 @@ export function useClinicData() {
         if (!isMounted || clinicDataVersion !== requestedVersion) return;
         writeCachedClinicData(freshData);
         setData(freshData);
+        setHasFreshServerData(true);
         setLoadError(null);
       })
       .catch((error) => {
         console.error(error);
         if (isMounted) {
+          setHasFreshServerData(false);
           setLoadError("Não foi possível carregar os dados da clínica.");
           if (!readCachedClinicData()) setData(emptyClinicData);
         }
@@ -572,7 +575,18 @@ export function useClinicData() {
     };
   }, []);
 
+  const canPersistClinicData = () => {
+    if (hasFreshServerData) return true;
+
+    const message = "Não foi possível confirmar os dados do banco. Recarregue a página antes de salvar alterações.";
+    setLoadError(message);
+    if (typeof window !== "undefined") window.alert(message);
+    return false;
+  };
+
   const setPersistedData = (updater: (current: PersistedClinicData) => PersistedClinicData) => {
+    if (!canPersistClinicData()) return false;
+
     setData((current) => {
       const next = withSyncedFinancialEntries(updater(current));
       writeCachedClinicData(next);
@@ -580,6 +594,8 @@ export function useClinicData() {
         .catch((error) => console.error(error));
       return next;
     });
+
+    return true;
   };
 
   return {
@@ -598,11 +614,11 @@ export function useClinicData() {
     createPatient: (input: PatientInput) => {
       const id = createId("PAT");
       const now = toIsoStamp();
-      setPersistedData((current) => ({
+      const saved = setPersistedData((current) => ({
         ...current,
         patients: [...current.patients, { ...input, id, createdAt: now, updatedAt: now }]
       }));
-      return id;
+      return saved ? id : "";
     },
     updatePatient: (id: string, input: PatientInput) => {
       setPersistedData((current) => ({

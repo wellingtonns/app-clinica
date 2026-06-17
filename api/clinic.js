@@ -13,6 +13,19 @@ const clinicStateCache =
 
 globalForClinicCache.softSteticClinicStateCache = clinicStateCache;
 
+const clinicStateCollections = [
+  "patients",
+  "products",
+  "professionals",
+  "anamneses",
+  "contracts",
+  "procedures",
+  "patientFiles",
+  "appointments",
+  "medicalRecords",
+  "financialEntries"
+];
+
 function json(res, status, payload, cacheControl = "no-store, max-age=0") {
   res.statusCode = status;
   res.setHeader("Content-Type", "application/json");
@@ -50,6 +63,14 @@ function readBody(req) {
 
 function toArray(value) {
   return Array.isArray(value) ? value : [];
+}
+
+function isCompleteClinicStatePayload(value) {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      clinicStateCollections.every((collection) => Array.isArray(value[collection]))
+  );
 }
 
 const patientSelect = {
@@ -485,6 +506,10 @@ export default async function handler(req, res) {
 
     if (req.method === "PUT") {
       const body = await readBody(req);
+      if (!isCompleteClinicStatePayload(body)) {
+        return json(res, 400, { error: "Payload de dados da clínica incompleto." });
+      }
+
       await replaceClinicState(body);
       updateClinicStateCache(body);
       return empty(res, 204);

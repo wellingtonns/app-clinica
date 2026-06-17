@@ -34,6 +34,10 @@ export interface StoredAsset {
   dataUrl: string;
   uploadedAt: string;
   description: string;
+  blobPathname?: string;
+  blobUrl?: string;
+  blobDownloadUrl?: string;
+  storageProvider?: "local" | "vercel-blob";
 }
 
 export interface Patient {
