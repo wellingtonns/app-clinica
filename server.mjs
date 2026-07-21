@@ -30,6 +30,8 @@ const apiRoutes = [
   { pattern: /^\/api\/auth\/logout\/?$/, file: "auth/logout.js" },
   { pattern: /^\/api\/auth\/me\/?$/, file: "auth/me.js" },
   { pattern: /^\/api\/auth\/register\/?$/, file: "auth/register.js" },
+  { pattern: /^\/api\/auth\/forgot-password\/?$/, file: "auth/forgot-password.js" },
+  { pattern: /^\/api\/auth\/reset-password\/?$/, file: "auth/reset-password.js" },
   { pattern: /^\/api\/patients\/([^/]+)\/history\/?$/, file: "patients/[id]/history.js", param: "id" },
   {
     pattern: /^\/api\/patients\/([^/]+)\/attendance-history\/?$/,

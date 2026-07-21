@@ -176,6 +176,7 @@ export function AuthPage({ mode }: Props) {
             <button className="auth-submit" type="submit" disabled={isSubmitting}>
               {isSubmitting ? (isLogin ? "Entrando..." : "Criando conta...") : isLogin ? "Entrar" : "Criar conta"}
             </button>
+            {isLogin ? <p className="auth-switch"><Link to="/esqueci-senha">Esqueci minha senha</Link></p> : null}
           </form>
 
           <p className="auth-switch">

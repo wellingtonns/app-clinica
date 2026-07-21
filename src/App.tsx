@@ -7,6 +7,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { FinancePage } from "./pages/FinancePage";
 import { PatientDetailsPage } from "./pages/PatientDetailsPage";
 import { PatientsPage } from "./pages/PatientsPage";
+import { PasswordResetPage } from "./pages/PasswordResetPage";
 import { ProductsPage } from "./pages/ProductsPage";
 import { ProfessionalsPage } from "./pages/ProfessionalsPage";
 import { SchedulePage } from "./pages/SchedulePage";
@@ -203,6 +204,8 @@ function App() {
               </PublicRoute>
             }
           />
+          <Route path="/esqueci-senha" element={<PublicRoute><PasswordResetPage mode="request" /></PublicRoute>} />
+          <Route path="/redefinir-senha" element={<PublicRoute><PasswordResetPage mode="reset" /></PublicRoute>} />
           <Route path="/*" element={<ProtectedApp />} />
         </Routes>
       </AuthProvider>
