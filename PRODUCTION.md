@@ -12,8 +12,8 @@ Arquitetura alvo:
 Configure na Vercel e localmente, sem commitar valores reais:
 
 ```env
-DATABASE_URL="postgresql://USER:PASSWORD@HOST:6543/postgres?pgbouncer=true&connection_limit=1"
-DIRECT_URL="postgresql://USER:PASSWORD@HOST:5432/postgres"
+POSTGRES_PRISMA_URL="postgresql://USER:PASSWORD@HOST:6543/postgres?pgbouncer=true&connection_limit=1"
+POSTGRES_URL_NON_POOLING="postgresql://USER:PASSWORD@HOST:5432/postgres"
 NEXT_PUBLIC_APP_NAME="Stetic Soft"
 JWT_SECRET="gere-um-valor-longo-e-seguro"
 BLOB_READ_WRITE_TOKEN="criado-ao-conectar-o-vercel-blob"
@@ -21,7 +21,7 @@ ADMIN_EMAIL="admin@sua-clinica.com"
 ADMIN_PASSWORD="gere-uma-senha-forte"
 ```
 
-Use `DATABASE_URL` com o pooler do Supabase para runtime e `DIRECT_URL` com a conexão direta para migrations.
+Use `POSTGRES_PRISMA_URL` com o pooler do Supabase para runtime e `POSTGRES_URL_NON_POOLING` com a conexao direta para migrations. A integracao Supabase da Vercel cria essas variaveis automaticamente.
 Use `JWT_SECRET` para assinar o cookie httpOnly de sessão. Em produção, gere um valor forte e exclusivo.
 Use `BLOB_READ_WRITE_TOKEN` para salvar imagens, contratos e arquivos do paciente no Vercel Blob. Para dados de paciente, prefira um Blob store privado; o app entrega os arquivos por uma rota autenticada em `/api/blob/file`.
 
