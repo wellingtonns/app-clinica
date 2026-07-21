@@ -17,6 +17,8 @@ DIRECT_URL="postgresql://USER:PASSWORD@HOST:5432/postgres"
 NEXT_PUBLIC_APP_NAME="Stetic Soft"
 JWT_SECRET="gere-um-valor-longo-e-seguro"
 BLOB_READ_WRITE_TOKEN="criado-ao-conectar-o-vercel-blob"
+ADMIN_EMAIL="admin@sua-clinica.com"
+ADMIN_PASSWORD="gere-uma-senha-forte"
 ```
 
 Use `DATABASE_URL` com o pooler do Supabase para runtime e `DIRECT_URL` com a conexão direta para migrations.
@@ -33,7 +35,8 @@ Use `BLOB_READ_WRITE_TOKEN` para salvar imagens, contratos e arquivos do pacient
 npm run prisma:deploy
 ```
 
-4. Criar o usuario administrador inicial:
+4. Criar ou atualizar o usuario administrador inicial. Antes do comando, defina
+   `ADMIN_EMAIL` e `ADMIN_PASSWORD` no ambiente local conectado ao banco de producao:
 
 ```bash
 npm run prisma:seed
